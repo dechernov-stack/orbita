@@ -148,13 +148,21 @@ class SynthesisRoutes(
     private fun принять(проект: String, код: String, тело: JsonNode): V2Router.Ответ {
         val итог = задание(проект, код)
         val автор = автор(тело)
+        val роль = тело.path("role").asText("").ifBlank { "инженер" }
         val карта = предложения(проект, итог)
         val выбранные = тело.path("chosen").map { it.asText() }
         require(выбранные.isNotEmpty()) {
             "не выбрано ни одного предложения: отметьте строки дифа — синтез сам ничего не заводит"
         }
+        // Обмен ссылается на функцию ЛОКАЛЬНЫМ КЛЮЧОМ: её кода до приёма нет
+        // (CODE-30-09 §1). Поэтому пакет принимается в два захода ОДНИМ
+        // нажатием: сначала простые понятия (функции), их ключи запоминаются
+        // кодами; потом ссылающиеся (обмены), у них ключ разрешается в код.
+        // Владелец видит один прогон и один приём — работа-то одна.
+        val ссылочные = выбранные.filter { карта[it]?.refs?.isNotEmpty() == true }
+        val простые = выбранные.filterNot { it in ссылочные }
         val правки = тело.path("edits").takeIf { it.isObject }
-        val кандидаты = выбранные.map { имя ->
+        val кандидаты = простые.map { имя ->
             val предложение = карта[имя]
                 ?: throw IllegalArgumentException("предложения «$имя» в «${итог.id}» нет: обновите диф")
             Candidate(
@@ -166,7 +174,10 @@ class SynthesisRoutes(
                 basis = предложение.basis.filterIsInstance<Basis.Fact>().firstOrNull()?.factId,
             )
         }
-        val сверка = reconcile.preview(проект, кандидаты, автор, тело.path("role").asText("").ifBlank { "инженер" })
+        // Выбранный обмен без карточки — ошибка сразу: карта знает выбранное.
+        ссылочные.firstOrNull { карта[it] == null }?.let {
+            throw IllegalArgumentException("предложения «$it» в «${итог.id}» нет: обновите диф")
+        }
         // Нехватка связи СЧИТАЕТСЯ ДО заведения, то есть против проекта, каким
         // он был до пакета. Нужда, чья сторона предложена ЭТИМ ЖЕ пакетом,
         // выглядела незакрытой — и одна такая строка уводила в отказ все
@@ -174,14 +185,15 @@ class SynthesisRoutes(
         // целиком: понятия заводятся по порядку — сначала те, у кого
         // обязательных связей нет, и связь закрывается уже заведённым
         // соседом. Что не закрылось и после этого — названо поимённо.
-        return V2Router.Ответ(201, заведённое(проект, сверка, итог.id, автор, тело, карта))
+        val сверка = if (кандидаты.isNotEmpty()) reconcile.preview(проект, кандидаты, автор, роль) else null
+        return V2Router.Ответ(201, заведённое(проект, сверка, итог.id, автор, тело, карта, ссылочные, роль))
     }
 
     private fun заведённое(
-        проект: String, сверка: ReconcileRun, синтез: String, автор: String, тело: JsonNode,
-        карта: Map<String, FormationProposal>,
+        проект: String, сверка: ReconcileRun?, синтез: String, автор: String, тело: JsonNode,
+        карта: Map<String, FormationProposal>, ссылочные: List<String>, роль: String,
     ): ObjectNode {
-        val узел = mapper.createObjectNode().put("run", сверка.id).put("from", синтез)
+        val узел = mapper.createObjectNode().put("run", сверка?.id ?: синтез).put("from", синтез)
         val созданные = узел.putArray("created")
         val связи = узел.putArray("links")
         val факты = узел.putArray("facts")
@@ -194,7 +206,7 @@ class SynthesisRoutes(
         // такие исчезали между выбором человека и ответом сервера: из 82
         // выбранных до сверки доходили 68, и на экране это выглядело как
         // «столько и было».
-        сверка.refused.forEach { брак ->
+        сверка?.refused?.forEach { брак ->
             ждут.addObject()
                 .put("proposal", брак.substringBefore(":").trim())
                 .put("verdict", "не разобрано")
@@ -208,66 +220,217 @@ class SynthesisRoutes(
         val мерыДоли = orbita.knowledge.api.KnowledgeFactory.measures(store, mapper)
         val вПартии = mutableMapOf<String, Double>()
         var принято = 0
+        // Локальный ключ функции → её код: им обмен разрешает ссылку (§2.2b).
+        val кодыФункций = mutableMapOf<String, String>()
         // Порядок: сначала понятия без обязательных связей (сторона), затем
         // те, чья связь на них и указывает (нужда), затем прочие. Внутри
         // группы — как пришли: порядок ответа модели уже осмысленный.
-        val поПорядку = сверка.items.sortedBy { кандидат ->
+        val поПорядку = сверка?.items?.sortedBy { кандидат ->
             GeneratedOntology.byCode[кандидат.concept]?.mustLink?.size ?: 0
-        }
+        }.orEmpty()
         поПорядку.forEach { кандидат ->
-            val номер = кандидат.findings.indexOfFirst { Action.ACCEPT_NEW in it.offers }
-            if (номер < 0 || кандидат.verdict != ReconcileVerdict.NEW) {
-                // Узнанное принятое решает человек: слить · уточнить · оспорить —
-                // действия сверки, а не автоматика акцепта. Причина называется
-                // ВСЕГДА: строка без причины на экране выглядит отказом без
-                // объяснения (прогон владельца 15.09).
-                ждут.addObject().put("proposal", кандидат.localId)
-                    .put("verdict", кандидат.verdict.word)
-                    .put("why", почемуЖдёт(кандидат))
-                return@forEach
+            val созд = завестиКандидата(
+                проект, сверка!!, кандидат, автор, причина, карта,
+                созданные, связи, факты, ждут, бюджеты, мерыДоли, вПартии,
+            )
+            if (созд.isNotEmpty()) {
+                принято += 1
+                // Ключ функции → её код: по нему обмен второго захода сошлётся.
+                карта[кандидат.localId]?.localKey?.let { ключ ->
+                    кодВида(проект, созд, "function")?.let { кодыФункций[ключ] = it }
+                }
             }
-            // Основание-родитель предложения (диф 28.09): у деривации требования
-            // оно есть, у прочих — нет. По нему идут ворота бюджета и связь.
-            val родитель = карта[кандидат.localId]?.basis
-                ?.filterIsInstance<Basis.Entity>()?.firstOrNull { it.kind == "requirement" }?.code
-            // Ворота бюджета ДО заведения: доля сверх потолка не принимается.
-            val перебор = родитель?.let { бюджетныйОтказ(проект, it, кандидат.localId, карта, бюджеты, мерыДоли, вПартии) }
-            if (перебор != null) {
-                ждут.addObject().put("proposal", кандидат.localId).put("verdict", "сверх бюджета").put("why", перебор)
-                return@forEach
-            }
-            val сделано = runCatching {
-                reconcile.apply(
-                    проект, сверка.id, кандидат.localId, номер, Action.ACCEPT_NEW,
-                    reason = причина, author = автор,
-                )
-            }.getOrElse { беда ->
-                // Не закрылась связь даже после заведённых соседей — строка
-                // ждёт человека, а пакет идёт дальше: половина выбранного,
-                // осевшая в модели, лучше отказа всему.
-                ждут.addObject()
-                    .put("proposal", кандидат.localId)
-                    .put("verdict", кандидат.verdict.word)
-                    .put("why", беда.message ?: "связь понятия не закрыта")
-                return@forEach
-            }
-            принято += 1
-            сделано.created.forEach { созданные.add(it) }
-            сделано.links.forEach { связи.add(it) }
-            сделано.facts.forEach { факты.add(it) }
-            // Связь derives при приёме (истина «связь derives обязательна») и
-            // учёт доли в партии — только для выводного требования.
-            родитель?.let { код ->
-                связьДеривации(проект, сделано.created, код, автор, причина)?.let { связи.add(it) }
-                доляВБюджет(проект, код, кандидат.localId, карта, бюджеты, мерыДоли)
-                    ?.let { вПартии.merge(код, it, Double::plus) }
-            }
+        }
+        // Обмены — вторым заходом ТОГО ЖЕ нажатия: ключи в коды функций
+        // (CODE-30-09 §1). Конец не принят → обмен откладывается, не отказ.
+        if (ссылочные.isNotEmpty()) {
+            принято += обмены(
+                проект, ссылочные, карта, автор, причина, роль, кодыФункций,
+                созданные, связи, факты, ждут, мерыДоли,
+            )
         }
         // Пакет записывается ЦЕЛИКОМ: без него «Отменить пакет» нечего
         // отменять — человек принял 74 строки одним нажатием и должен иметь
         // право вернуть их одним же.
         запомнитьПакет(проект, синтез, автор, созданные)
-        return узел.put("accepted", принято).put("note", сверка.note)
+        return узел.put("accepted", принято).put("note", сверка?.note ?: "принято обменами пакета")
+    }
+
+    /**
+     * Завести ОДНОГО кандидата приёмом: ворота бюджета (для выводного
+     * требования) — ДО заведения, `reconcile.apply`, связь derives и учёт доли
+     * — после. Возвращает коды заведённого; пусто — отложен (узнанное принятое,
+     * перебор бюджета или незакрытая связь), причина уже уложена в `ждут`.
+     * Общий и для простых понятий, и для обменов второго захода.
+     */
+    private fun завестиКандидата(
+        проект: String, сверка: ReconcileRun, кандидат: ReconcileItem, автор: String, причина: String,
+        карта: Map<String, FormationProposal>,
+        созданные: ArrayNode, связи: ArrayNode, факты: ArrayNode, ждут: ArrayNode,
+        бюджеты: orbita.knowledge.api.Budgets?, меры: orbita.knowledge.api.Measures,
+        вПартии: MutableMap<String, Double>,
+    ): List<String> {
+        val номер = кандидат.findings.indexOfFirst { Action.ACCEPT_NEW in it.offers }
+        if (номер < 0 || кандидат.verdict != ReconcileVerdict.NEW) {
+            // Узнанное принятое решает человек: слить · уточнить · оспорить —
+            // действия сверки, а не автоматика акцепта. Причина называется ВСЕГДА.
+            ждут.addObject().put("proposal", кандидат.localId)
+                .put("verdict", кандидат.verdict.word).put("why", почемуЖдёт(кандидат))
+            return emptyList()
+        }
+        // Основание-родитель предложения (диф 28.09): у деривации требования
+        // оно есть, у функции и обмена — нет. По нему идут ворота бюджета и связь.
+        val родитель = карта[кандидат.localId]?.basis
+            ?.filterIsInstance<Basis.Entity>()?.firstOrNull { it.kind == "requirement" }?.code
+        val перебор = родитель?.let { бюджетныйОтказ(проект, it, кандидат.localId, карта, бюджеты, меры, вПартии) }
+        if (перебор != null) {
+            ждут.addObject().put("proposal", кандидат.localId).put("verdict", "сверх бюджета").put("why", перебор)
+            return emptyList()
+        }
+        val сделано = runCatching {
+            reconcile.apply(
+                проект, сверка.id, кандидат.localId, номер, Action.ACCEPT_NEW,
+                reason = причина, author = автор,
+            )
+        }.getOrElse { беда ->
+            // Не закрылась связь даже после заведённых соседей — строка ждёт
+            // человека, а пакет идёт дальше: половина выбранного лучше отказа всему.
+            ждут.addObject().put("proposal", кандидат.localId)
+                .put("verdict", кандидат.verdict.word).put("why", беда.message ?: "связь понятия не закрыта")
+            return emptyList()
+        }
+        сделано.created.forEach { созданные.add(it) }
+        сделано.links.forEach { связи.add(it) }
+        сделано.facts.forEach { факты.add(it) }
+        родитель?.let { код ->
+            связьДеривации(проект, сделано.created, код, автор, причина)?.let { связи.add(it) }
+            доляВБюджет(проект, код, кандидат.localId, карта, бюджеты, меры)
+                ?.let { вПартии.merge(код, it, Double::plus) }
+        }
+        // Шаг сценария получает свою функцию (§2 CODE-30-09): проза остаётся.
+        шагуФункцию(проект, кандидат.localId, карта, сделано.created)
+        return сделано.created
+    }
+
+    /**
+     * Приём обменов вторым заходом (§2.2b, CODE-30-09 §1): концы обмена —
+     * ЛОКАЛЬНЫЕ КЛЮЧИ функций — разрешаются в коды заведённых в этом пакете
+     * функций (или коды уже принятых функций/сторон). Конец не разрешился —
+     * обмен ОТЛОЖЕН, а не отказ: вернётся, когда его функцию примут. Заводится
+     * всё той же сверкой — ни одной записи сущности мимо приёма.
+     */
+    private fun обмены(
+        проект: String, ссылочные: List<String>, карта: Map<String, FormationProposal>,
+        автор: String, причина: String, роль: String, кодыФункций: Map<String, String>,
+        созданные: ArrayNode, связи: ArrayNode, факты: ArrayNode, ждут: ArrayNode,
+        меры: orbita.knowledge.api.Measures,
+    ): Int {
+        val область = Area.Project(проект)
+        val готовые = mutableListOf<Pair<String, Map<String, String>>>()
+        ссылочные.forEach { имя ->
+            val предложение = карта[имя] ?: run {
+                ждут.addObject().put("proposal", имя).put("verdict", "не разобрано")
+                    .put("why", "предложения нет: обновите диф")
+                return@forEach
+            }
+            val payload = предложение.payload.toMutableMap()
+            // Первая неразрешённая ссылка (поле → ключ) — она и откладывает
+            // обмен; попутно разрешённые ложатся кодами в payload. `for` вместо
+            // forEach: нужен break, и переменную не захватывает вложенное замыкание.
+            var нераскрытый: Pair<String, String>? = null
+            for ((поле, ключ) in предложение.refs) {
+                val код = кодыФункций[ключ] ?: разрешитьКод(область, ключ)
+                if (код == null) {
+                    нераскрытый = поле to ключ
+                    break
+                }
+                payload[поле] = код
+            }
+            if (нераскрытый != null) {
+                val (поле, ключ) = нераскрытый
+                ждут.addObject().put("proposal", имя).put("verdict", "отложено")
+                    .put("why", "отложено: ${рольСсылки(поле)} «$ключ» не принята — обмен вернётся, когда её примут")
+            } else {
+                готовые += имя to payload
+            }
+        }
+        if (готовые.isEmpty()) return 0
+        // Разрешённые обмены — той же сверкой; ссылки уже коды, ворота
+        // `must_link` (source_function · target) закрыты значениями.
+        val кандидаты = готовые.map { (имя, payload) ->
+            Candidate(имя, карта.getValue(имя).concept, содержимоеИз(payload), CandidateOrigin.SYNTHESIS)
+        }
+        val сверка = reconcile.preview(проект, кандидаты, автор, роль)
+        сверка.refused.forEach { брак ->
+            ждут.addObject().put("proposal", брак.substringBefore(":").trim())
+                .put("verdict", "не разобрано").put("why", брак.substringAfter(":").trim().ifBlank { брак })
+        }
+        var принято = 0
+        сверка.items.forEach { кандидат ->
+            val созд = завестиКандидата(
+                проект, сверка, кандидат, автор, причина, карта,
+                созданные, связи, факты, ждут, null, меры, mutableMapOf(),
+            )
+            if (созд.isNotEmpty()) принято += 1
+        }
+        return принято
+    }
+
+    /** Код уже принятой функции или стороны по коду-ключу; null — такой сущности нет. */
+    private fun разрешитьКод(область: Area, ключ: String): String? =
+        store.byCode(область, ключ)?.takeIf { it.kind in ССЫЛОЧНЫЕ_ВИДЫ }?.code
+
+    /** Роль ссылки словами — для «отложено: функция-источник … не принята». */
+    private fun рольСсылки(поле: String): String = when (поле) {
+        "source_function" -> "функция-источник"
+        "target" -> "функция-получатель"
+        else -> "ссылка «$поле»"
+    }
+
+    /** Содержимое кандидата из готовых полей (ссылки уже разрешены в коды). */
+    private fun содержимоеИз(поля: Map<String, String>): ObjectNode =
+        mapper.createObjectNode().also { узел ->
+            поля.forEach { (имя, значение) -> узел.set<JsonNode>(имя, значениеУзлом(значение)) }
+        }
+
+    /** Код заведённого нужного вида среди созданных (функция среди созданного). */
+    private fun кодВида(проект: String, созданные: List<String>, вид: String): String? {
+        val область = Area.Project(проект)
+        return созданные.firstOrNull { store.byCode(область, it)?.kind == вид }
+    }
+
+    /**
+     * Шаг сценария получает свою функцию (§2 CODE-30-09): основание принятой
+     * функции — шаг сценария (`Basis.Entity` functional_chain, anchor = что
+     * шага). При приёме шаг получает ссылку на заведённую функцию полем
+     * `function`; проза шага (`what`/`actor`/`component`) остаётся. Так цепочка
+     * становится SA по истине, и 2.3 (стыки из обменов) читает готовую цепочку.
+     *
+     * Форму шага истина схем пока называет плоским `functional_chain.steps:
+     * ref[] function`; поле шага `function` при сохранённой прозе — вопрос формы
+     * шага, вынесен в NEXT.md диффом владельцу. Здесь — по имени, что владелец
+     * назвал (`поле шага function`); экран без него работает.
+     */
+    private fun шагуФункцию(
+        проект: String, localId: String, карта: Map<String, FormationProposal>, созданные: List<String>,
+    ) {
+        val предложение = карта[localId] ?: return
+        if (предложение.concept != "function") return
+        val основа = предложение.basis.filterIsInstance<Basis.Entity>()
+            .firstOrNull { it.kind == "functional_chain" } ?: return
+        val область = Area.Project(проект)
+        val кодФункции = созданные.firstOrNull { store.byCode(область, it)?.kind == "function" } ?: return
+        val цепочка = store.byCode(область, основа.code) ?: return
+        val документ = цепочка.doc.deepCopy<JsonNode>() as ObjectNode
+        val шаги = документ.path("steps") as? ArrayNode ?: return
+        // Шаг основания — по якорю (что шага); первый ещё не привязанный.
+        val якорь = основа.anchor?.trim().orEmpty()
+        val шаг = шаги.firstOrNull {
+            it.isObject && it.path("function").asText("").isBlank() &&
+                (якорь.isBlank() || it.path("what").asText("").trim() == якорь)
+        } as? ObjectNode ?: return
+        шаг.put("function", кодФункции)
+        store.update(цепочка.id, документ, цепочка.provenance, status = цепочка.status)
     }
 
     /** Доля предложения в каноне размерности бюджета; null — не бюджет, доли нет или не той размерности. */
@@ -850,5 +1013,8 @@ class SynthesisRoutes(
 
         /** Статус снятого с учёта: сущность остаётся в истории, из модели уходит. */
         const val СНЯТО: String = "cancelled"
+
+        /** Виды, на которые обмен ссылается концом: функция или сторона (§2.2b). */
+        val ССЫЛОЧНЫЕ_ВИДЫ: Set<String> = setOf("function", "stakeholder")
     }
 }

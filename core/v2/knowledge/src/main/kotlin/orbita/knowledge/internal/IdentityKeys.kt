@@ -171,22 +171,32 @@ internal class IdentityKeys(
         return null
     }
 
-    private fun одинТокен(токен: String, payload: JsonNode, фразыПонятия: List<String>): Ключ? = when (токен) {
-        "statement_core" -> {
+    private fun одинТокен(токен: String, payload: JsonNode, фразыПонятия: List<String>): Ключ? = when {
+        // Составной ключ «a+b+c» — конъюнкция: у обмена это
+        // «source_function+target+payload_core» (истина `exchange.identity`).
+        // Все части обязаны сложиться, иначе ключа нет вовсе (кандидат — новый).
+        токен.contains("+") -> {
+            val части = токен.split("+").map { it.trim() }.map { одинТокен(it, payload, фразыПонятия) }
+            if (части.any { it == null || !it.сложился }) null
+            else Ключ(части.joinToString("+") { it!!.value }, части.flatMap { it!!.fields }.distinct())
+        }
+        токен == "statement_core" -> {
             val поле = listOf("statement", "text", "label").firstOrNull {
                 payload.path(it).asText("").isNotBlank()
             }
             поле?.let { statementCore(payload.path(it).asText(""), it, фразыПонятия) }
         }
+        // Ядро содержимого обмена: что передаётся, словами — «телеметрия груза».
+        токен == "payload_core" -> statementCore(payload.path("payload").asText(""), "payload", фразыПонятия)
         // Синонимы сведены к канону в самом nameNormalized — отдельной ветки нет.
-        "name_normalized", "synonyms" -> nameNormalized(payload.path("name").asText(""))
-        "name_core" -> nameCore(payload.path("name").asText(""))
-        "measure.key" -> показательВеличины(payload.path("measure"), "measure")
-        "bound.key" -> показательВеличины(payload.path("bound"), "bound")
-        "designation_natural" -> designationNatural(payload.path("designation").asText(""))
+        токен == "name_normalized" || токен == "synonyms" -> nameNormalized(payload.path("name").asText(""))
+        токен == "name_core" -> nameCore(payload.path("name").asText(""))
+        токен == "measure.key" -> показательВеличины(payload.path("measure"), "measure")
+        токен == "bound.key" -> показательВеличины(payload.path("bound"), "bound")
+        токен == "designation_natural" -> designationNatural(payload.path("designation").asText(""))
         // «Один на проект» (замысел): ключ — сам проект. До 17.09 он не
         // складывался вовсе, и каждый приём заводил ВТОРОЙ замысел.
-        "project" -> (область as? Area.Project)?.let { Ключ("проект:${it.id}", listOf("project")) }
+        токен == "project" -> (область as? Area.Project)?.let { Ключ("проект:${it.id}", listOf("project")) }
         // Поле-ссылка (нужда: сторона) — код как есть: коды не нормализуются.
         else -> payload.path(токен).asText("").trim()
             .takeIf { it.isNotBlank() }?.let { Ключ(it, listOf(токен)) }

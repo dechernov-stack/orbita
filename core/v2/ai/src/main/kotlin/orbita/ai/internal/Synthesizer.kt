@@ -717,6 +717,13 @@ class Synthesizer(
         }
         узел.put("mark", предложение.sourceMark.name)
         if (предложение.rankHint.isNotBlank()) узел.put("rank_hint", предложение.rankHint)
+        // Локальный ключ и ссылки на соседей по пакету (§2.2b): по ним приём
+        // разрешает обмен в коды заведённых функций. Пусто — поля нет.
+        предложение.localKey?.let { узел.put("local_key", it) }
+        if (предложение.refs.isNotEmpty()) {
+            val ссылки = узел.putObject("refs")
+            предложение.refs.forEach { (поле, ключ) -> ссылки.put(поле, ключ) }
+        }
         return узел
     }
 
@@ -732,6 +739,9 @@ class Synthesizer(
         confidence = узел.path("confidence").takeIf { it.isNumber }?.asDouble(),
         missing = узел.path("missing").map { it.asText() },
         rankHint = узел.path("rank_hint").asText(""),
+        localKey = узел.path("local_key").asText("").ifBlank { null },
+        refs = узел.path("refs").takeIf { it.isObject }
+            ?.properties()?.associate { it.key to it.value.asText("") }.orEmpty(),
     )
 
     private fun основаниеИзЗаписи(узел: JsonNode): Basis {

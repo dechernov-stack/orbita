@@ -1356,7 +1356,12 @@ internal class Reconciler(
     private fun недостающие(вид: String, понятие: Concept, документ: ObjectNode): List<String> {
         val спец = GeneratedKinds.byCode[вид] ?: return emptyList()
         return спец.requiredFields.filter { поле ->
-            поле !in понятие.fields && поле !in спец.factRefFields &&
+            // Код — адрес записи, его ВСЕГДА присваивает `завести` (следующий/
+            // store), у любого вида: спрашивать его при приёме нельзя. У
+            // требования это закрыто истиной (`required_at: code accept:system`),
+            // у функции и обмена required_at пуст — а инвариант один на все виды.
+            поле != "code" &&
+                поле !in понятие.fields && поле !in спец.factRefFields &&
                 документ.path(поле).asText("").isBlank() && !документ.path(поле).isObject &&
                 // Список ссылок (носители нужды) — поле не пустое, если в нём
                 // хоть одна ссылка: `asText` у массива всегда пуст.

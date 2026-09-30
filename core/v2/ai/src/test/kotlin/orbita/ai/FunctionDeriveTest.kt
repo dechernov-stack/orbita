@@ -60,6 +60,53 @@ class FunctionDeriveTest {
     }
 
     @Test
+    fun `обмены — функции и обмен одним вызовом, обмен ссылается локальным ключом`() {
+        двеФункции()
+        канал.ответ = """
+            {"functions":[
+              {"id":"f1","chain":"FC-1","step":"терминал передаёт","node":"C-0007","name":"передать сообщение"},
+              {"id":"f2","chain":"FC-1","step":"шлюз принимает","node":"C-0008","name":"принять сообщение"}
+            ],
+            "exchanges":[
+              {"id":"x1","source":"f1","target":"f2","name":"сообщение терминала","payload":"пакет данных"}
+            ]}
+        """.trimIndent()
+
+        val прогон = деривер.deriveInto(ПРОЕКТ, АВТОР, синтез)
+
+        val предложения = прогон.diff.new
+        assertEquals(3, предложения.size, "две функции и обмен одним пакетом")
+        val функции = предложения.filter { it.concept == "function" }
+        assertTrue(функции.any { it.localKey == "f1" } && функции.any { it.localKey == "f2" }, "у функций локальные ключи ответа")
+
+        val обмен = предложения.single { it.concept == "exchange" }
+        assertEquals("f1", обмен.payload["source_function"], "конец обмена — локальный ключ функции")
+        assertEquals("f2", обмен.payload["target"])
+        assertEquals("пакет данных", обмен.payload["payload"])
+        assertEquals(mapOf("source_function" to "f1", "target" to "f2"), обмен.refs, "обмен ссылается локальными ключами")
+        val основание = обмен.basis.single()
+        assertTrue(основание is Basis.Entity && основание.code == "FC-1", "основание обмена — шаг сценария-источника")
+    }
+
+    @Test
+    fun `обмен на функцию вне пакета — отбит с причиной, функция остаётся`() {
+        двеФункции()
+        канал.ответ = """
+            {"functions":[
+              {"id":"f1","chain":"FC-1","step":"терминал передаёт","node":"C-0007","name":"передать сообщение"}
+            ],
+            "exchanges":[
+              {"id":"x1","source":"fX","target":"f1","name":"нечто"}
+            ]}
+        """.trimIndent()
+
+        val прогон = деривер.deriveInto(ПРОЕКТ, АВТОР, синтез)
+
+        assertEquals(1, прогон.diff.new.size, "функция осталась, обмен на неизвестный ключ отбит")
+        assertTrue("fX" in (прогон.note ?: ""), "отказ называет неизвестный ключ: ${прогон.note}")
+    }
+
+    @Test
     fun `ворота — узла функции нет в составе — отбито`() {
         схема()
         канал.ответ = """
@@ -103,6 +150,24 @@ class FunctionDeriveTest {
         val ц = mapper.createObjectNode().put("name", "Доставка сообщения")
         ц.putArray("steps").addObject()
             .put("what", "терминал передаёт сообщение").put("actor", "терминал").put("component", "C-0007")
+        store.create("FC-1", "functional_chain", Area.Project(ПРОЕКТ), null, ц, пров())
+    }
+
+    /** Проект + два узла + сценарий FC-1, два шага которого несут эти узлы: для обменов. */
+    private fun двеФункции() {
+        паспорт()
+        store.create(
+            "C-0007", "component", Area.Project(ПРОЕКТ), null,
+            mapper.createObjectNode().put("name", "Приёмный модуль").put("kind", "element"), пров(),
+        )
+        store.create(
+            "C-0008", "component", Area.Project(ПРОЕКТ), null,
+            mapper.createObjectNode().put("name", "Шлюз").put("kind", "element"), пров(),
+        )
+        val ц = mapper.createObjectNode().put("name", "Доставка сообщения")
+        val шаги = ц.putArray("steps")
+        шаги.addObject().put("what", "терминал передаёт").put("actor", "терминал").put("component", "C-0007")
+        шаги.addObject().put("what", "шлюз принимает").put("actor", "шлюз").put("component", "C-0008")
         store.create("FC-1", "functional_chain", Area.Project(ПРОЕКТ), null, ц, пров())
     }
 
