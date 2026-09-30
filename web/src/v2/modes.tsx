@@ -35,11 +35,16 @@ function useВидМашины(): (путь: string) => { код: string; имя
 type Состояние = { code: string; name: string; kind: string }
 type Переход = { from: string; to: string; вид: string; чем: string }
 
-export function SceneModes({ project, onChanged }: { project: string; onChanged: () => void }) {
+export function SceneModes({ project, onChanged, onGoProposals }: {
+  project: string
+  onChanged: () => void
+  /** Уйти в «Предложения» по прогону — функции из сценариев (§2.2). */
+  onGoProposals?: (run: string) => void
+}) {
   return (
     <>
       <Режимы project={project} onChanged={onChanged} />
-      <Сценарии project={project} onChanged={onChanged} />
+      <Сценарии project={project} onChanged={onChanged} onGoProposals={onGoProposals} />
     </>
   )
 }
@@ -205,7 +210,12 @@ function Режимы({ project, onChanged }: { project: string; onChanged: () =
 const РЕЖИМ_СЦЕНАРИЯ: Record<string, string> = { nominal: 'штатный', off_nominal: 'нештатный', alarm: 'тревога' }
 const ВИД_УЧАСТНИКА: Record<string, string> = { node: 'узел', side: 'сторона', external: 'внешняя система', unresolved: 'не найден' }
 
-function Сценарии({ project, onChanged }: { project: string; onChanged: () => void }) {
+function Сценарии({ project, onChanged, onGoProposals }: {
+  project: string
+  onChanged: () => void
+  /** Уйти в «Предложения» по прогону — функции из сценариев (§2.2). */
+  onGoProposals?: (run: string) => void
+}) {
   const [сценарии, setСценарии] = useState<ScenarioRow[]>([])
   const [узлы, setУзлы] = useState<ComponentRow[]>([])
   const [имя, setИмя] = useState('')
@@ -221,7 +231,20 @@ function Сценарии({ project, onChanged }: { project: string; onChanged: 
   const [предложение, setПредложение] = useState<ScenarioProposal | null>(null)
   const [отмечено, setОтмечено] = useState<string[]>([])
   const [занятоПредложением, setЗанятоПредложением] = useState(false)
+  const [занятоФункциями, setЗанятоФункциями] = useState(false)
   const [автор] = useАвтор()
+
+  /**
+   * Вывести функции из шагов сценариев (§2.2 шипа 6): помощник кладёт
+   * предложения ручным прогоном, кнопка ведёт в «Предложения» по прогону.
+   * Заводит не здесь — приём в «Предложениях» той же сверкой.
+   */
+  const выводФункций = () => {
+    setЗанятоФункциями(true); setОтказ(null)
+    api.deriveFunctions(project, автор || 'инженер')
+      .then((r) => onGoProposals?.(r.run))
+      .catch((e) => { setОтказ(String(e.message ?? e)); setЗанятоФункциями(false) })
+  }
 
   const перечитать = useCallback(() => {
     api.scenarios(project).then((р) => setСценарии(р.items)).catch(() => undefined)
@@ -298,6 +321,12 @@ function Сценарии({ project, onChanged }: { project: string; onChanged: 
           title="один вызов: сервисы проекта и цепочки полки Arcadia → сценарии с шагами «участник — что происходит»; ничего не заводится без вашей галки">
           {занятоПредложением ? 'Предлагаю…' : 'Предложить из сервисов'}
         </button>
+        {onGoProposals && (
+          <button type="button" className="v2-chip" disabled={занятоФункциями} onClick={выводФункций}
+            title="из шагов сценариев с участником-узлом — функции узлов (и обмены) предложениями; приём в «Предложениях» сверкой">
+            {занятоФункциями ? 'Вывожу…' : 'Вывести функции из сценариев'}
+          </button>
+        )}
         {предложение && предложение.scenarios.some((с) => с.accepted) && (
           <button type="button" className="v2-link" disabled={занятоПредложением} onClick={отменить}
             title="снять заведённые предложением сценарии; записанные руками целы">

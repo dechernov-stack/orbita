@@ -31,9 +31,11 @@ import { Costs, Risks, Technologies } from './programmatics'
 import { PhaseASurface } from './phasea'
 import { ОтветственныеСцен } from './responsibles'
 
-export function Work({ project, onProject, wantScene, wantReason, onScenePicked, роль, режим, onРежим, onGoPoint }: {
+export function Work({ project, onProject, wantScene, wantReason, onScenePicked, роль, режим, onРежим, onGoPoint, onGoProposals }: {
   project: string | null
   onProject: (p: string) => void
+  /** Уйти в «Предложения» по прогону — помощник функций из сценариев (§2.2). */
+  onGoProposals?: (run: string) => void
   /** Сцена, на которую просили открыть работу (переход из заданий). */
   wantScene?: string | null
   /**
@@ -211,7 +213,7 @@ export function Work({ project, onProject, wantScene, wantReason, onScenePicked,
         Сцена 9 без поверхности стояла глухо: условие говорило «назовите режимы
         аппарата в сцене 9», а называть их было негде (проход владельца 20.09).
       */}
-      {текущая.key === '9' && <SceneModes project={project} onChanged={перечитать} />}
+      {текущая.key === '9' && <SceneModes project={project} onChanged={перечитать} onGoProposals={onGoProposals} />}
       {текущая.key === '10' && <Technologies project={project} />}
       {текущая.key === '11' && <Risks project={project} />}
       {текущая.key === '12' && <Costs project={project} />}

@@ -2649,6 +2649,16 @@ export const api = {
       `/requirements/derive-node?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify({ node, author }) }),
 
+  /**
+   * Вывести функции из шагов сценариев (§2.2 шипа 6): помощник кладёт
+   * предложения ручным прогоном постановки. Проект целиком. Возвращает код
+   * прогона — кнопка сцены 9 ведёт по нему в «Предложения».
+   */
+  deriveFunctions: (project: string, author = 'инженер') =>
+    вызов<{ run: string; note: string; proposals: number }>(
+      `/functions/derive?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ author }) }),
+
   // --- документ как источник — целиком (шип 4 §3) ---
 
   /** Канон материала: блоки с якорями — из них экран собирает разделы для приёма «по разделам». */

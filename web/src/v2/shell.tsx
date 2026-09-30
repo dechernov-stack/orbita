@@ -365,6 +365,7 @@ export function Shell() {
               wantReason={wantReason}
               onScenePicked={() => setWantScene(null)}
               onGoPoint={(к) => { setWantPoint(к); setSection('points') }}
+              onGoProposals={(run) => { setWantProposalRun(run); setSection('knowledge') }}
               роль={роль} режим={режим} onРежим={setРежим} />
           ) : section === 'knowledge' ? (
             <KnowledgeField project={project} expert={expert} ручной={ручнойВвод} openRun={wantProposalRun}

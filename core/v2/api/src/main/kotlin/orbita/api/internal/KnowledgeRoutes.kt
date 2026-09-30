@@ -49,6 +49,8 @@ class KnowledgeRoutes(
     private val allocateFunctions: orbita.ai.api.DistributeNeeds? = null,
     /** Деривация требований узла вниз предложениями (§2.1 шипа 6); null — не включена. */
     private val derive: orbita.ai.api.DeriveRequirements? = null,
+    /** Функции из шагов сценариев предложениями (§2.2 шипа 6); null — не включено. */
+    private val deriveFn: orbita.ai.api.DeriveFunctions? = null,
 ) {
 
     /**
@@ -86,6 +88,11 @@ class KnowledgeRoutes(
         // Кнопка карточки узла ведёт сюда, оттуда — в «Предложения» по прогону.
         method == "POST" && path == "/v2/requirements/derive-node" ->
             деривацияУзла(требуется(query, "project"), разобрать(body))
+
+        // Функции (и обмены) из шагов сценариев (§2.2 шипа 6): помощник кладёт
+        // предложения ручным прогоном; кнопка сцены 9 ведёт в «Предложения».
+        method == "POST" && path == "/v2/functions/derive" ->
+            деривацияФункций(требуется(query, "project"), разобрать(body))
 
         // Эталон постановки предложениями (ПМИ-7): добор того, чего чтение
         // не дало, — тем же экраном и тем же акцептом.
@@ -567,6 +574,38 @@ class KnowledgeRoutes(
                 mapper.createObjectNode()
                     .put("error", "канал службы недоступен: ${e.message}")
                     .put("what_to_do", "повторите вывод позже — узел и его требования на месте"),
+            )
+        }
+    }
+
+    /**
+     * Функции из шагов сценариев (§2.2 шипа 6): проект целиком — срез по всем
+     * сценариям. Возвращает код прогона (SR-N); кнопка сцены 9 ведёт по нему в
+     * «Предложения».
+     */
+    private fun деривацияФункций(project: String, тело: JsonNode): V2Router.Ответ {
+        val помощник = deriveFn ?: return V2Router.Ответ(
+            501,
+            mapper.createObjectNode()
+                .put("error", "вывод функций из сценариев на этом стенде не включён")
+                .put("what_to_do", "заведите функции узла формой на карточке узла"),
+        )
+        val автор = тело.path("author").asText("инженер")
+        return try {
+            val запуск = помощник.derive(project, автор)
+            V2Router.Ответ(
+                201,
+                mapper.createObjectNode()
+                    .put("run", запуск.id)
+                    .put("note", запуск.note ?: "")
+                    .put("proposals", запуск.diff.size),
+            )
+        } catch (e: ProviderUnavailable) {
+            V2Router.Ответ(
+                503,
+                mapper.createObjectNode()
+                    .put("error", "канал службы недоступен: ${e.message}")
+                    .put("what_to_do", "повторите вывод позже — сценарии на месте"),
             )
         }
     }

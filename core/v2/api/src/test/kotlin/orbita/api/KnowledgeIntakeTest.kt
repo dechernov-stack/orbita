@@ -142,6 +142,28 @@ class KnowledgeIntakeTest {
     }
 
     @Test
+    fun `POST functions-derive зовёт помощника функций и отдаёт код прогона`() {
+        val маршрут = KnowledgeRoutes(
+            знания, AiFactory.atomize(store, знания, служба, mapper), служба, mapper,
+            deriveFn = orbita.ai.api.DeriveFunctions { _, _ ->
+                orbita.ai.api.SynthesisRun("SR-0022", "manual", "срез", 2, "v", "done", note = "функции из сценариев")
+            },
+        )
+        val ответ = маршрут.handle(
+            "POST", "/v2/functions/derive", mapOf("project" to "PJ-9342"), """{"author":"инженер"}""",
+        )
+        assertEquals(201, ответ?.code, ответ?.body.toString())
+        assertEquals("SR-0022", ответ!!.body.path("run").asText())
+    }
+
+    @Test
+    fun `POST functions-derive без помощника отвечает 501`() {
+        val маршрут = KnowledgeRoutes(знания, AiFactory.atomize(store, знания, служба, mapper), служба, mapper)
+        val ответ = маршрут.handle("POST", "/v2/functions/derive", mapOf("project" to "PJ-9343"), """{}""")
+        assertEquals(501, ответ?.code)
+    }
+
+    @Test
     fun `канон Д1 даёт блоки с якорями и повторяется отпечатком`() {
         val проект = "PJ-9300"
         val код = материал(проект)
