@@ -2659,6 +2659,17 @@ export const api = {
       `/functions/derive?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify({ author }) }),
 
+  /**
+   * Стыки из обменов узла (§2.3 шипа 6): помощник кладёт предложения ручным
+   * прогоном постановки. Срез — узел: обмены через его границу и внешние
+   * участники сценариев. Возвращает код прогона — кнопка A4/A5 карточки узла
+   * ведёт по нему в «Предложения».
+   */
+  deriveInterfaces: (project: string, node: string, author = 'инженер') =>
+    вызов<{ run: string; node: string; note: string; proposals: number }>(
+      `/interfaces/derive-node?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ node, author }) }),
+
   // --- документ как источник — целиком (шип 4 §3) ---
 
   /** Канон материала: блоки с якорями — из них экран собирает разделы для приёма «по разделам». */

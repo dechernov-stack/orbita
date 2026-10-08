@@ -51,6 +51,8 @@ class KnowledgeRoutes(
     private val derive: orbita.ai.api.DeriveRequirements? = null,
     /** Функции из шагов сценариев предложениями (§2.2 шипа 6); null — не включено. */
     private val deriveFn: orbita.ai.api.DeriveFunctions? = null,
+    /** Стыки из обменов для узла (§2.3 шипа 6); null — не включено. */
+    private val deriveIf: orbita.ai.api.DeriveInterfaces? = null,
 ) {
 
     /**
@@ -93,6 +95,12 @@ class KnowledgeRoutes(
         // предложения ручным прогоном; кнопка сцены 9 ведёт в «Предложения».
         method == "POST" && path == "/v2/functions/derive" ->
             деривацияФункций(требуется(query, "project"), разобрать(body))
+
+        // Стыки из обменов узла (§2.3 шипа 6): обмены через границу узла и
+        // внешние участники сценариев; кнопка A4/A5 карточки узла ведёт в
+        // «Предложения» по прогону.
+        method == "POST" && path == "/v2/interfaces/derive-node" ->
+            деривацияСтыков(требуется(query, "project"), разобрать(body))
 
         // Эталон постановки предложениями (ПМИ-7): добор того, чего чтение
         // не дало, — тем же экраном и тем же акцептом.
@@ -606,6 +614,42 @@ class KnowledgeRoutes(
                 mapper.createObjectNode()
                     .put("error", "канал службы недоступен: ${e.message}")
                     .put("what_to_do", "повторите вывод позже — сценарии на месте"),
+            )
+        }
+    }
+
+    /**
+     * Стыки из обменов узла (§2.3 шипа 6): машина находит обмены через границу
+     * узла и внешних участников сценариев, модель формулирует стык. Возвращает
+     * код прогона (SR-N); кнопка A4/A5 карточки узла ведёт по нему в
+     * «Предложения».
+     */
+    private fun деривацияСтыков(project: String, тело: JsonNode): V2Router.Ответ {
+        val помощник = deriveIf ?: return V2Router.Ответ(
+            501,
+            mapper.createObjectNode()
+                .put("error", "вывод стыков из обменов на этом стенде не включён")
+                .put("what_to_do", "заведите стык узла формой «Новый стык» на карточке узла"),
+        )
+        val узел = тело.path("node").asText("").trim()
+        require(узел.isNotBlank()) { "укажите node — для какого узла вывести стыки" }
+        val автор = тело.path("author").asText("инженер")
+        return try {
+            val запуск = помощник.derive(project, узел, автор)
+            V2Router.Ответ(
+                201,
+                mapper.createObjectNode()
+                    .put("run", запуск.id)
+                    .put("node", узел)
+                    .put("note", запуск.note ?: "")
+                    .put("proposals", запуск.diff.size),
+            )
+        } catch (e: ProviderUnavailable) {
+            V2Router.Ответ(
+                503,
+                mapper.createObjectNode()
+                    .put("error", "канал службы недоступен: ${e.message}")
+                    .put("what_to_do", "повторите вывод позже — обмены и состав на месте"),
             )
         }
     }

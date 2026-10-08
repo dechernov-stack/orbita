@@ -32,6 +32,7 @@ const ДЕЙСТВИЕ: Record<string, string> = {
   models: 'привязать модель',
   risks: 'связать риск',
   requirements: 'вывести требования узла',
+  interfaces: 'стыки узла из обменов',
 }
 
 /**
@@ -110,6 +111,9 @@ function Действие({ project, узел, грань, ступень, onDon
   if (грань === 'requirements' && onGoProposals) {
     return <ВыводТребований project={project} узел={узел} автор={автор} onGo={onGoProposals} onClose={onClose} />
   }
+  if (грань === 'interfaces' && onGoProposals) {
+    return <ВыводСтыков project={project} узел={узел} автор={автор} onGo={onGoProposals} onClose={onClose} />
+  }
   const ожидание = ступень.facets.find((г) => г.key === грань)?.expected
   return <div className="v2-facet__hint">{ГДЕ[грань] ?? ожидание ?? 'грань заводится своей сценой'}</div>
 }
@@ -138,6 +142,37 @@ function ВыводТребований({ project, узел, автор, onGo, o
       <button type="button" className="v2-primary" disabled={идёт}
         title={`вывести требования узла ${узел}`} onClick={вывести}>
         {идёт ? 'вывожу…' : 'Вывести требования'}
+      </button>
+      <button type="button" className="v2-link" onClick={onClose}>отмена</button>
+      {отказ && <span className="v2-bad">{отказ}</span>}
+    </div>
+  )
+}
+
+/**
+ * Вывести стыки узла из обменов (§2.3 шипа 6): машина найдёт обмены через
+ * границу узла и внешних участников сценариев, модель сформулирует стыки —
+ * предложениями; приём — в «Предложениях» той же сверкой.
+ */
+function ВыводСтыков({ project, узел, автор, onGo, onClose }: {
+  project: string; узел: string; автор: string; onGo: (run: string) => void; onClose: () => void
+}) {
+  const [идёт, setИдёт] = useState(false)
+  const [отказ, setОтказ] = useState<string | null>(null)
+  const вывести = () => {
+    setИдёт(true); setОтказ(null)
+    api.deriveInterfaces(project, узел, автор)
+      .then((r) => onGo(r.run))
+      .catch((e) => { setОтказ(String(e?.message ?? e)); setИдёт(false) })
+  }
+  return (
+    <div className="v2-form v2-form--row">
+      <span className="v2-facet__hint">
+        машина найдёт обмены через границу узла и внешних участников сценариев, модель сформулирует стыки — предложениями; приём — в «Предложениях»
+      </span>
+      <button type="button" className="v2-primary" disabled={идёт}
+        title={`вывести стыки узла ${узел} из обменов`} onClick={вывести}>
+        {идёт ? 'вывожу…' : 'Стыки из обменов'}
       </button>
       <button type="button" className="v2-link" onClick={onClose}>отмена</button>
       {отказ && <span className="v2-bad">{отказ}</span>}

@@ -364,6 +364,8 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             derive = orbita.ai.api.AiFactory.deriveRequirements(store, знания, служба, mapper, links),
             // Функции из шагов сценариев (§2.2 шипа 6): помощник Phase A, проект целиком.
             deriveFn = orbita.ai.api.AiFactory.deriveFunctions(store, знания, служба, mapper),
+            // Стыки из обменов узла (§2.3 шипа 6): помощник Phase A, срез — узел.
+            deriveIf = orbita.ai.api.AiFactory.deriveInterfaces(store, знания, служба, mapper),
         )
         // Обмен (шип F): служба StrictDoc — по ORBITA_STRICTDOC_URL, снимки
         // .sdoc — в томе файлов стенда рядом с базированиями документов.

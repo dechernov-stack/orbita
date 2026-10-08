@@ -9,6 +9,7 @@ import orbita.ai.internal.DocumentReader
 import orbita.ai.internal.FunctionAllocationDistributor
 import orbita.ai.internal.FunctionDeriver
 import orbita.ai.internal.GoalCoverageDistributor
+import orbita.ai.internal.InterfaceDeriver
 import orbita.ai.internal.ScenarioProposer
 import orbita.ai.internal.NeedDistributor
 import orbita.ai.internal.RequirementDeriver
@@ -64,6 +65,17 @@ fun interface DeriveRequirements {
  */
 fun interface DeriveFunctions {
     fun derive(project: String, author: String): SynthesisRun
+}
+
+/**
+ * Стыки из обменов (§2.3 шипа 6) — помощник Phase A: машина находит обмены,
+ * пересекающие границу узла, и внешних участников сценариев, модель
+ * формулирует стык (стороны, тип и направление словами истины), всё ложится
+ * РУЧНЫМ прогоном постановки. Кнопка A4/A5 карточки узла («стыки узла») ведёт
+ * в «Предложения» по прогону. Срез — узел и его соседи за границей.
+ */
+fun interface DeriveInterfaces {
+    fun derive(project: String, node: String, author: String): SynthesisRun
 }
 
 /**
@@ -173,6 +185,21 @@ object AiFactory {
     ): DeriveFunctions = DeriveFunctions { project, author ->
         FunctionDeriver(store, intake, service, mapper)
             .deriveInto(project, author, Synthesizer(store, intake, service, mapper))
+    }
+
+    /**
+     * Стыки из обменов (§2.3 шипа 6): деривер добывает стык с основанием-
+     * обменом, синтез кладёт его РУЧНЫМ прогоном — та же запись и приём, что у
+     * деривации требований и функций.
+     */
+    fun deriveInterfaces(
+        store: EntityStore,
+        intake: Intake,
+        service: AiService,
+        mapper: ObjectMapper = ObjectMapper(),
+    ): DeriveInterfaces = DeriveInterfaces { project, node, author ->
+        InterfaceDeriver(store, intake, service, mapper)
+            .deriveInto(project, node, author, Synthesizer(store, intake, service, mapper))
     }
 
     /**
