@@ -925,18 +925,23 @@ class Прогон:
         # MCR, KDP-A) уже записаны планом Pre-A и в самих точках — ворота фазы
         # (замечание владельца 11.09) отказывают, если в плане Phase A стоит
         # дата раньше решения KDP-A, а прошедшие точки раньше неё стоять не
-        # могут. Константы «из будущего» (2026-10-01) 08.10 рванули прогон.
+        # могут. Константы «из будущего» (2026-10-01) 08.10 рванули прогон;
+        # дальше здесь только сдвиги от дня прогона (KDP-A решён сегодня) —
+        # окна сцен лесенкой к своим точкам.
+        import datetime
+        сегодня = datetime.date.today()
+        день = lambda сдвиг: (сегодня + datetime.timedelta(days=сдвиг)).isoformat()
         точки = {т["key"]: т for т in фаза["gates"]}
-        даты = {"internal_review_a": "2027-03-01", "SRR": "2027-05-01", "SDR": "2027-09-01", "KDP-B": "2027-11-01"}
+        даты = {"internal_review_a": день(90), "SRR": день(150), "SDR": день(270), "KDP-B": день(330)}
         план = вызов(self.base, "GET", f"/v2/plan?project={self.проект}")
         if (план or {}).get("phase") != "Phase A":
             вызов(self.base, "POST", f"/v2/plan?project={self.проект}", {
                 "phase": "Phase A", "set_by": "Чернов Д.",
                 "gate_dates": [{"gate": к, "date": д} for к, д in даты.items()],
                 "scene_windows": [
-                    {"scene": "A1", "start": "2027-01-10", "end": "2027-01-31", "responsible": "chernov"},
-                    {"scene": "A2", "start": "2027-01-15", "end": "2027-03-01", "responsible": "chernov"},
-                    {"scene": "A3", "start": "2027-01-20", "end": "2027-04-01", "responsible": "ivanov"},
+                    {"scene": "A1", "start": день(7), "end": день(28), "responsible": "chernov"},
+                    {"scene": "A2", "start": день(14), "end": день(60), "responsible": "chernov"},
+                    {"scene": "A3", "start": день(21), "end": день(90), "responsible": "ivanov"},
                 ],
             })
             self.сделано.append("A1: план фазы — даты точек, ответственные сцен, окна A1–A3")
