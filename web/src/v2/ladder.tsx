@@ -33,6 +33,7 @@ const ДЕЙСТВИЕ: Record<string, string> = {
   risks: 'связать риск',
   requirements: 'вывести требования узла',
   interfaces: 'стыки узла из обменов',
+  parameters: 'анкета из паспорта поставщика',
 }
 
 /**
@@ -114,6 +115,9 @@ function Действие({ project, узел, грань, ступень, onDon
   if (грань === 'interfaces' && onGoProposals) {
     return <ВыводСтыков project={project} узел={узел} автор={автор} onGo={onGoProposals} onClose={onClose} />
   }
+  if (грань === 'parameters' && onGoProposals) {
+    return <АнкетаИзПаспорта project={project} узел={узел} автор={автор} onGo={onGoProposals} onClose={onClose} />
+  }
   const ожидание = ступень.facets.find((г) => г.key === грань)?.expected
   return <div className="v2-facet__hint">{ГДЕ[грань] ?? ожидание ?? 'грань заводится своей сценой'}</div>
 }
@@ -173,6 +177,37 @@ function ВыводСтыков({ project, узел, автор, onGo, onClose }
       <button type="button" className="v2-primary" disabled={идёт}
         title={`вывести стыки узла ${узел} из обменов`} onClick={вывести}>
         {идёт ? 'вывожу…' : 'Стыки из обменов'}
+      </button>
+      <button type="button" className="v2-link" onClick={onClose}>отмена</button>
+      {отказ && <span className="v2-bad">{отказ}</span>}
+    </div>
+  )
+}
+
+/**
+ * Вывести анкету узла из паспорта изделия (§2.4 шипа 6): машина найдёт
+ * поставщика узла и его паспорт изделия, модель выпишет величины анкеты с
+ * дословными цитатами — предложениями; приём — в «Предложениях» той же сверкой.
+ */
+function АнкетаИзПаспорта({ project, узел, автор, onGo, onClose }: {
+  project: string; узел: string; автор: string; onGo: (run: string) => void; onClose: () => void
+}) {
+  const [идёт, setИдёт] = useState(false)
+  const [отказ, setОтказ] = useState<string | null>(null)
+  const вывести = () => {
+    setИдёт(true); setОтказ(null)
+    api.deriveParameters(project, узел, автор)
+      .then((r) => onGo(r.run))
+      .catch((e) => { setОтказ(String(e?.message ?? e)); setИдёт(false) })
+  }
+  return (
+    <div className="v2-form v2-form--row">
+      <span className="v2-facet__hint">
+        машина найдёт поставщика узла и его паспорт изделия, модель выпишет величины анкеты с цитатами — предложениями; приём — в «Предложениях»
+      </span>
+      <button type="button" className="v2-primary" disabled={идёт}
+        title={`вывести анкету узла ${узел} из паспорта поставщика`} onClick={вывести}>
+        {идёт ? 'вывожу…' : 'Из документа поставщика'}
       </button>
       <button type="button" className="v2-link" onClick={onClose}>отмена</button>
       {отказ && <span className="v2-bad">{отказ}</span>}

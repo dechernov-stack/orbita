@@ -53,6 +53,8 @@ class KnowledgeRoutes(
     private val deriveFn: orbita.ai.api.DeriveFunctions? = null,
     /** Стыки из обменов для узла (§2.3 шипа 6); null — не включено. */
     private val deriveIf: orbita.ai.api.DeriveInterfaces? = null,
+    /** Анкета узла из паспорта изделия поставщика (§2.4 шипа 6); null — не включено. */
+    private val deriveQp: orbita.ai.api.DeriveParameters? = null,
 ) {
 
     /**
@@ -101,6 +103,12 @@ class KnowledgeRoutes(
         // «Предложения» по прогону.
         method == "POST" && path == "/v2/interfaces/derive-node" ->
             деривацияСтыков(требуется(query, "project"), разобрать(body))
+
+        // Анкета узла из паспорта изделия поставщика (§2.4 шипа 6): машина
+        // находит поставщика и его документ, модель выпишет величины с цитатами;
+        // кнопка «параметры» строки долга ведёт в «Предложения» по прогону.
+        method == "POST" && path == "/v2/parameters/derive-datasheet" ->
+            параметрыИзПаспорта(требуется(query, "project"), разобрать(body))
 
         // Эталон постановки предложениями (ПМИ-7): добор того, чего чтение
         // не дало, — тем же экраном и тем же акцептом.
@@ -650,6 +658,42 @@ class KnowledgeRoutes(
                 mapper.createObjectNode()
                     .put("error", "канал службы недоступен: ${e.message}")
                     .put("what_to_do", "повторите вывод позже — обмены и состав на месте"),
+            )
+        }
+    }
+
+    /**
+     * Анкета узла из паспорта изделия (§2.4 шипа 6): машина находит поставщика
+     * узла (грань «Поставщик») и его документ роли supplier, модель выпишет
+     * величины анкеты с дословными цитатами и якорями. Возвращает код прогона
+     * (SR-N); кнопка «параметры» строки долга узла ведёт по нему в «Предложения».
+     */
+    private fun параметрыИзПаспорта(project: String, тело: JsonNode): V2Router.Ответ {
+        val помощник = deriveQp ?: return V2Router.Ответ(
+            501,
+            mapper.createObjectNode()
+                .put("error", "вывод анкеты из паспорта на этом стенде не включён")
+                .put("what_to_do", "заведите величины анкеты формой параметра узла"),
+        )
+        val узел = тело.path("node").asText("").trim()
+        require(узел.isNotBlank()) { "укажите node — для какого узла вывести анкету" }
+        val автор = тело.path("author").asText("инженер")
+        return try {
+            val запуск = помощник.derive(project, узел, автор)
+            V2Router.Ответ(
+                201,
+                mapper.createObjectNode()
+                    .put("run", запуск.id)
+                    .put("node", узел)
+                    .put("note", запуск.note ?: "")
+                    .put("proposals", запуск.diff.size),
+            )
+        } catch (e: ProviderUnavailable) {
+            V2Router.Ответ(
+                503,
+                mapper.createObjectNode()
+                    .put("error", "канал службы недоступен: ${e.message}")
+                    .put("what_to_do", "повторите вывод позже — поставщик и его паспорт на месте"),
             )
         }
     }

@@ -2670,6 +2670,17 @@ export const api = {
       `/interfaces/derive-node?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify({ node, author }) }),
 
+  /**
+   * Анкета узла из паспорта изделия (§2.4 шипа 6): машина находит поставщика
+   * узла и его документ роли supplier, модель выпишет величины анкеты с цитатами
+   * и якорями. Возвращает код прогона — кнопка «параметры» строки долга узла
+   * ведёт по нему в «Предложения».
+   */
+  deriveParameters: (project: string, node: string, author = 'инженер') =>
+    вызов<{ run: string; node: string; note: string; proposals: number }>(
+      `/parameters/derive-datasheet?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ node, author }) }),
+
   // --- документ как источник — целиком (шип 4 §3) ---
 
   /** Канон материала: блоки с якорями — из них экран собирает разделы для приёма «по разделам». */

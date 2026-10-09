@@ -10,6 +10,7 @@ import orbita.ai.internal.FunctionAllocationDistributor
 import orbita.ai.internal.FunctionDeriver
 import orbita.ai.internal.GoalCoverageDistributor
 import orbita.ai.internal.InterfaceDeriver
+import orbita.ai.internal.QuestionnaireDeriver
 import orbita.ai.internal.ScenarioProposer
 import orbita.ai.internal.NeedDistributor
 import orbita.ai.internal.RequirementDeriver
@@ -75,6 +76,17 @@ fun interface DeriveFunctions {
  * в «Предложения» по прогону. Срез — узел и его соседи за границей.
  */
 fun interface DeriveInterfaces {
+    fun derive(project: String, node: String, author: String): SynthesisRun
+}
+
+/**
+ * Анкета узла из паспорта изделия (§2.4 шипа 6) — помощник Phase A: машина
+ * находит поставщика узла (грань «Поставщик») и его документ роли supplier,
+ * модель формулирует величины анкеты с дословной цитатой и якорем; всё ложится
+ * РУЧНЫМ прогоном постановки, ворота — срез и сторож чисел. Кнопка «параметры»
+ * строки долга узла ведёт в «Предложения» по прогону.
+ */
+fun interface DeriveParameters {
     fun derive(project: String, node: String, author: String): SynthesisRun
 }
 
@@ -199,6 +211,21 @@ object AiFactory {
         mapper: ObjectMapper = ObjectMapper(),
     ): DeriveInterfaces = DeriveInterfaces { project, node, author ->
         InterfaceDeriver(store, intake, service, mapper)
+            .deriveInto(project, node, author, Synthesizer(store, intake, service, mapper))
+    }
+
+    /**
+     * Анкета узла из паспорта изделия (§2.4 шипа 6): деривер добывает величину
+     * с основанием-документом и якорем, синтез кладёт её РУЧНЫМ прогоном —
+     * та же запись и приём, что у деривации стыков и требований.
+     */
+    fun deriveParameters(
+        store: EntityStore,
+        intake: Intake,
+        service: AiService,
+        mapper: ObjectMapper = ObjectMapper(),
+    ): DeriveParameters = DeriveParameters { project, node, author ->
+        QuestionnaireDeriver(store, intake, service, mapper)
             .deriveInto(project, node, author, Synthesizer(store, intake, service, mapper))
     }
 
