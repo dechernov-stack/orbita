@@ -369,6 +369,10 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             // Анкета узла из паспорта изделия поставщика (§2.4 шипа 6): помощник
             // Phase A, срез — узел: поставщик, его документ, анкета из полки.
             deriveQp = orbita.ai.api.AiFactory.deriveParameters(store, знания, служба, mapper),
+            // Риски из разрывов фазы (§2.5 шипа 6): помощник Phase A, срез —
+            // фаза целиком: разрывы машина находит сама, модель только пишет
+            // формулировку; links — покрытие целей и суммы бюджетов.
+            deriveRisks = orbita.ai.api.AiFactory.deriveRisks(store, знания, links, служба, mapper),
         )
         // Обмен (шип F): служба StrictDoc — по ORBITA_STRICTDOC_URL, снимки
         // .sdoc — в томе файлов стенда рядом с базированиями документов.

@@ -2681,6 +2681,17 @@ export const api = {
       `/parameters/derive-datasheet?project=${encodeURIComponent(project)}`,
       { method: 'POST', body: JSON.stringify({ node, author }) }),
 
+  /**
+   * Риски из разрывов фазы (§2.5 шипа 6): машина находит разрывы сама (TRL,
+   * грани лестницы, запас бюджета, цели без требований), модель лишь пишет
+   * формулировку; модели нет — шаблонные формулировки. Возвращает код прогона —
+   * кнопка реестра рисков ведёт по нему в «Предложения».
+   */
+  deriveRisks: (project: string, author = 'инженер') =>
+    вызов<{ run: string; note: string; proposals: number }>(
+      `/risks/derive-gaps?project=${encodeURIComponent(project)}`,
+      { method: 'POST', body: JSON.stringify({ author }) }),
+
   // --- документ как источник — целиком (шип 4 §3) ---
 
   /** Канон материала: блоки с якорями — из них экран собирает разделы для приёма «по разделам». */

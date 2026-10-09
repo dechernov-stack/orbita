@@ -89,12 +89,14 @@ export function чипыРисков(риски: RiskRow[], словом: (по�
 
 type Учётка = { login: string; display_name: string }
 
-export function RiskRegistry({ project, wantRisk, сцены }: {
+export function RiskRegistry({ project, wantRisk, сцены, onGoProposals }: {
   project: string
   /** Карточка, которую просили открыть (ссылка с точки). */
   wantRisk?: string | null
   /** Сцены фазы для связи риска со сценой; нет — только узлы. */
   сцены?: { key: string; title: string }[]
+  /** Переход в «Предложения» по прогону помощника (§2.5 шипа 6). */
+  onGoProposals?: (run: string) => void
 }) {
   const [риски, setРиски] = useState<RiskRow[]>([])
   /** Записи вида «риск» для карточки: грани правятся по истине. */
@@ -106,9 +108,23 @@ export function RiskRegistry({ project, wantRisk, сцены }: {
   const [порядок, setПорядок] = useState<Порядок>('level')
   const [форма, setФорма] = useState(false)
   const [занято, setЗанято] = useState(false)
+  const [вывожуРазрывы, setВывожуРазрывы] = useState(false)
   const вехи = useВехи(project)
   const [автор] = useАвтор()
   const [вопрос, спросить, закрытьВопрос] = useConfirm()
+
+  /**
+   * Риски из разрывов фазы (§2.5 шипа 6): машина находит разрывы сама,
+   * модель лишь пишет формулировку — недоступна, придут шаблонные. Прогон
+   * открывается в «Предложениях»: приём той же сверкой, риск рождается open.
+   */
+  const рискиИзРазрывов = () => {
+    if (!onGoProposals) return
+    setВывожуРазрывы(true); setОтказ(null)
+    api.deriveRisks(project, автор || 'инженер')
+      .then((r) => onGoProposals(r.run))
+      .catch((e) => { setОтказ(String(e?.message ?? e)); setВывожуРазрывы(false) })
+  }
 
   const перечитать = useCallback(() => {
     api.risks(project).then((r) => setРиски(r.items)).catch((e) => setОтказ(String(e.message ?? e)))
@@ -267,6 +283,8 @@ export function RiskRegistry({ project, wantRisk, сцены }: {
                 <option value="due">по сроку-точке</option>
               </select>
             </label>
+            <ИконКнопка икон="сформировать" сословом слово={вывожуРазрывы ? 'ищу разрывы…' : 'риски из разрывов фазы'}
+              disabled={вывожуРазрывы || !onGoProposals} onClick={рискиИзРазрывов} />
             <ИконКнопка икон="добавить" сословом слово={форма ? 'свернуть форму' : 'завести риск'} aria-expanded={форма}
               onClick={() => setФорма(!форма)} />
           </>

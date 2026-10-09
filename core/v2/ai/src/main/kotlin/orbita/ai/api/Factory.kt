@@ -11,6 +11,7 @@ import orbita.ai.internal.FunctionDeriver
 import orbita.ai.internal.GoalCoverageDistributor
 import orbita.ai.internal.InterfaceDeriver
 import orbita.ai.internal.QuestionnaireDeriver
+import orbita.ai.internal.RiskDeriver
 import orbita.ai.internal.ScenarioProposer
 import orbita.ai.internal.NeedDistributor
 import orbita.ai.internal.RequirementDeriver
@@ -88,6 +89,18 @@ fun interface DeriveInterfaces {
  */
 fun interface DeriveParameters {
     fun derive(project: String, node: String, author: String): SynthesisRun
+}
+
+/**
+ * Риски из разрывов фазы (§2.5 шипа 6) — помощник Phase A: машина сама находит
+ * разрывы (TRL ниже порога точки · пустые грани лестницы · запас бюджета ниже
+ * политики · цели без требований), модель лишь переформулирует готовое
+ * условие · событие · последствие; модели нет — формулировка шаблонная, ИИ не
+ * на критическом пути. Кнопка реестра рисков (A8) ведёт в «Предложения»
+ * по прогону, приём — та же сверка.
+ */
+fun interface DeriveRisks {
+    fun derive(project: String, author: String): SynthesisRun
 }
 
 /**
@@ -227,6 +240,28 @@ object AiFactory {
     ): DeriveParameters = DeriveParameters { project, node, author ->
         QuestionnaireDeriver(store, intake, service, mapper)
             .deriveInto(project, node, author, Synthesizer(store, intake, service, mapper))
+    }
+
+    /**
+     * Риски из разрывов фазы (§2.5 шипа 6): деривер добывает разрывы четырёх
+     * источников своими портами (архитектура · программатика · бюджеты ·
+     * реестр связей), синтез кладёт предложения РУЧНЫМ прогоном — та же
+     * запись и приём, что у остальных помощников шипа 6.
+     */
+    fun deriveRisks(
+        store: EntityStore,
+        intake: Intake,
+        links: orbita.kernel.api.LinkRegistry,
+        service: AiService,
+        mapper: ObjectMapper = ObjectMapper(),
+    ): DeriveRisks = DeriveRisks { project, author ->
+        RiskDeriver(
+            store, links,
+            orbita.architecture.api.ArchitectureFactory.architecture(store, links, mapper),
+            orbita.programmatics.api.ProgrammaticsFactory.programmatics(store, mapper),
+            KnowledgeFactory.budgets(store, links, mapper),
+            service, mapper,
+        ).deriveInto(project, author, Synthesizer(store, intake, service, mapper))
     }
 
     /**

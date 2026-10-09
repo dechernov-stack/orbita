@@ -55,6 +55,8 @@ class KnowledgeRoutes(
     private val deriveIf: orbita.ai.api.DeriveInterfaces? = null,
     /** Анкета узла из паспорта изделия поставщика (§2.4 шипа 6); null — не включено. */
     private val deriveQp: orbita.ai.api.DeriveParameters? = null,
+    /** Риски из разрывов фазы (§2.5 шипа 6); null — не включено. */
+    private val deriveRisks: orbita.ai.api.DeriveRisks? = null,
 ) {
 
     /**
@@ -109,6 +111,12 @@ class KnowledgeRoutes(
         // кнопка «параметры» строки долга ведёт в «Предложения» по прогону.
         method == "POST" && path == "/v2/parameters/derive-datasheet" ->
             параметрыИзПаспорта(требуется(query, "project"), разобрать(body))
+
+        // Риски из разрывов фазы (§2.5 шипа 6): разрывы находит машина сама,
+        // модель лишь переформулирует; недоступна — шаблонные формулировки.
+        // Кнопка реестра рисков (A8) ведёт в «Предложения» по прогону.
+        method == "POST" && path == "/v2/risks/derive-gaps" ->
+            рискиИзРазрывов(требуется(query, "project"), разобрать(body))
 
         // Эталон постановки предложениями (ПМИ-7): добор того, чего чтение
         // не дало, — тем же экраном и тем же акцептом.
@@ -696,6 +704,31 @@ class KnowledgeRoutes(
                     .put("what_to_do", "повторите вывод позже — поставщик и его паспорт на месте"),
             )
         }
+    }
+
+    /**
+     * Риски из разрывов фазы (§2.5 шипа 6): машина находит разрывы сама,
+     * модель лишь переформулирует — поэтому недоступность модели НЕ 503:
+     * предложения приходят с шаблонными формулировками (ИИ не на критическом
+     * пути, §2.5). Возвращает код прогона (SR-N); кнопка реестра рисков ведёт
+     * по нему в «Предложения».
+     */
+    private fun рискиИзРазрывов(project: String, тело: JsonNode): V2Router.Ответ {
+        val помощник = deriveRisks ?: return V2Router.Ответ(
+            501,
+            mapper.createObjectNode()
+                .put("error", "риски из разрывов на этом стенде не включены")
+                .put("what_to_do", "заведите риск формой реестра"),
+        )
+        val автор = тело.path("author").asText("инженер")
+        val запуск = помощник.derive(project, автор)
+        return V2Router.Ответ(
+            201,
+            mapper.createObjectNode()
+                .put("run", запуск.id)
+                .put("note", запуск.note ?: "")
+                .put("proposals", запуск.diff.size),
+        )
     }
 
     private fun чтение(project: String, тело: JsonNode): V2Router.Ответ {

@@ -419,7 +419,8 @@ export function Shell() {
               onGo={(куда) => { if (куда.scene) setWantScene(куда.scene); setSection(куда.section) }} />
           ) : section === 'risks' ? (
             project
-              ? <RiskRegistry project={project} wantRisk={wantRisk} сцены={phase?.scenes.map((с) => ({ key: с.key, title: с.title })) ?? []} />
+              ? <RiskRegistry project={project} wantRisk={wantRisk} сцены={phase?.scenes.map((с) => ({ key: с.key, title: с.title })) ?? []}
+                onGoProposals={(run) => { setWantProposalRun(run); setSection('knowledge') }} />
               : <div className="v2-panel" data-why="почему-нельзя"><h3>Риски</h3><div className="v2-empty">Проект не выбран.</div></div>
           ) : section === 'passport' ? (
             <PassportScreen project={project} учётка={я}
