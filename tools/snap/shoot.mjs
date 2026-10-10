@@ -152,6 +152,68 @@ async function карточка(стр, раздел, роль, ширина) {
   await стр.evaluate(() => window.scrollTo(0, 0))
 }
 
+/**
+ * Шип 6 §4: карточка узла с кнопками помощников и «Предложения» с отбором
+ * по прогону. Честный путь человека: карточка узла → грань лестницы
+ * («требования») → кнопка помощника («Вывести требования») — приложение само
+ * ведёт в «Поле знаний», вкладка «Предложения» открывается с отбором по
+ * прогону. Повтор по тому же срезу отвечается из журнала без живого вызова.
+ * Узлы перебираются по списку: у кого первого нашлась грань, тот и снят.
+ */
+async function помощникУзла(стр, роль, ширина) {
+  const { узлы, фасет, кнопка } = план.helper
+  if (!(await открыть(стр, 'Концепция'))) return
+  // Кнопки строки догружаются с данными каркаса: ждём появления ПЕРВОЙ
+  // (экран догружает состав не сразу), затем ищем узел.
+  const первая = стр.locator('main button[aria-label^="карточка узла"]').first()
+  const дождались = await первая.waitFor({ timeout: 30000 }).then(() => true).catch(() => false)
+  if (!дождались) {
+    console.log(`  помощник: кнопок карточек нет за 30с; в main кнопок: ${await стр.locator('main button').count()}, ` +
+      `текст: ${(await стр.locator('main').textContent())?.replace(/\s+/g, ' ').slice(0, 140)}`)
+    return
+  }
+  let карточкаОткрыта = false
+  for (const узел of узлы) {
+    const кнопкаКарточки = стр.locator(`main button[aria-label^="карточка узла ${узел}"]`).first()
+    if (!(await кнопкаКарточки.waitFor({ timeout: 5000 }).then(() => true).catch(() => false))) continue
+    await кнопкаКарточки.click()
+    await стр.waitForTimeout(1200)
+    карточкаОткрыта = true
+    // Грани приходят со ступенью — она читается с сервера после открытия
+    // карточки; count() здесь гонит быстрее экрана, ждём появления.
+    const грань = стр.locator(`main .v2-facet__ro button`, { hasText: фасет }).first()
+    if (await грань.waitFor({ timeout: 10000 }).then(() => true).catch(() => false)) { await грань.click(); break }
+    await стр.locator('main button[aria-label^="свернуть карточку"]').first().click().catch(() => {})
+    await стр.waitForTimeout(400)
+    карточкаОткрыта = false
+  }
+  if (!карточкаОткрыта) { console.log('  помощник: ни у одного узла грани нет — пропуск'); return }
+  await стр.waitForTimeout(план.pauseMs ?? 900)
+  const имяПомощники = `концепция~помощники-${роль.file}-${ширина}.png`
+  await стр.screenshot({ path: `${план.out}/${имяПомощники}` })
+  итог.push({ file: имяПомощники, section: 'Концепция', role: роль.file, width: ширина })
+  console.log(`  ${имяПомощники}`)
+  // Кнопка помощника: после неё приложение само уходит в «Поле знаний».
+  // Отказ машиной (срез пуст) ведёт не в «Предложения», а в слова отказа —
+  // прогон снимков это пережить обязан. Чип «прогон SR-…» стережёт честность
+  // отбора: сама шапка прогона есть и у безотборной вкладки.
+  await стр.locator('main').getByRole('button', { name: кнопка }).first().click()
+  try {
+    await стр.locator('main').getByText(/прогон SR-/).first().waitFor({ timeout: план.helperWaitMs ?? 120000 })
+    // Прогон применяется опросом: ждём его шапку — иначе снимок поймает
+    // промежуточный экран с чипом отбора, но без дифа.
+    await стр.waitForSelector('main .v2-runhead', { timeout: 60000 })
+  } catch {
+    console.log('  помощник: прогон не открылся (отказ машиной?) — «Предложения» по прогону не сняты')
+    return
+  }
+  await стр.waitForTimeout(план.pauseMs ?? 900)
+  const имяПрогон = `поле-знаний~по-прогону-${роль.file}-${ширина}.png`
+  await стр.screenshot({ path: `${план.out}/${имяПрогон}` })
+  итог.push({ file: имяПрогон, section: 'Поле знаний', role: роль.file, width: ширина })
+  console.log(`  ${имяПрогон}`)
+}
+
 for (const ширина of план.widths) {
   const высота = ширина >= 1440 ? 900 : 800
   for (const роль of план.roles) {
@@ -179,6 +241,7 @@ for (const ширина of план.widths) {
       if ((план.tabSections ?? []).includes(раздел.title)) await вкладки(стр, раздел, роль, ширина)
       if (раздел.title === 'Работа' && (план.scenes ?? []).length > 0) await сцены(стр, раздел, роль, ширина)
     }
+    if (план.helper) await помощникУзла(стр, роль, ширина)
     await контекст.close()
   }
 }

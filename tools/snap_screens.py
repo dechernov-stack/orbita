@@ -80,6 +80,9 @@ def снять(args) -> pathlib.Path:
         "open": dict(п.split("=", 1) for п in args.open.split(",")) if args.open else {},
         "scroll": dict(п.split("=", 1) for п in args.scroll.split(";")) if args.scroll else {},
         "tab": dict(п.split("=", 1) for п in args.tab.split(",")) if args.tab else {},
+        # Шип 6 §4: карточка узла с помощниками → «Предложения» по прогону.
+        "helper": (lambda ч: {"узлы": [у.strip() for у in ч[0].split(",")], "фасет": ч[1].strip(), "кнопка": ч[2].strip()})(
+            args.helper.split("=", 2)) if args.helper else None,
     }
     with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as f:
         json.dump(план, f, ensure_ascii=False)
@@ -188,6 +191,9 @@ def main() -> int:
     с.add_argument("--scroll", default=None, help="«Раздел=селектор» через «;»: к чему прокрутить снимок «открыто» (замечания точки)")
     с.add_argument("--widths", default=None, help="1440,1280")
     с.add_argument("--expert", action="store_true", help="с --sections: снимать и эксперт-разделы из списка")
+    с.add_argument("--helper", default=None,
+                   help="шип 6 §4: «узлы=фасет=кнопка» — карточка узла с кнопками помощников "
+                        "и «Предложения» с отбором по прогону, например SC,UT,SYS=требования=Вывести требования")
     с.add_argument("--before", default=None, help="папка «до» для листа парами")
     л = под.add_parser("sheet")
     л.add_argument("--dir", required=True)

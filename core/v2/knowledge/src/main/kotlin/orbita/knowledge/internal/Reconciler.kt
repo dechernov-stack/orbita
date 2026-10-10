@@ -812,12 +812,19 @@ internal class Reconciler(
             // «statement contradicts» — текстовое противоречие: числом оно не
             // сравнивается, его смотрит вторая ступень.
             if (поле.isBlank() || поле.contains(" ")) return@mapNotNull null
-            val моё = снимок.path(поле)
-            val чужое = принятый.path(поле)
+            // Форму сводим до сравнения: приём хранит связи массивом, а
+            // кандидат из синтеза несёт одно значение текстом (идентификатором
+            // носителя — так кладёт FunctionDeriver) либо текстом-массивом.
+            // Без сведения к одному виду строка против массива даёт ложное
+            // противоречие там, где онтология ждёт augment — поймано тестом
+            // «дубль функции по ключу идентичности» из §4 шипа 6.
+            val моё = разобранное(снимок.path(поле))
+            val чужое = разобранное(принятый.path(поле))
             if (пусто(моё) || пусто(чужое)) return@mapNotNull null
             val отличие = when {
                 поле == "year" -> нормализация.сравнитьГоризонт(поле, моё, чужое)
                 моё.isObject || чужое.isObject -> нормализация.сравнить(поле, моё, чужое)
+                моё.isArray || чужое.isArray -> списком(поле, моё, чужое)
                 else -> строкой(поле, моё.asText(""), чужое.asText(""))
             }
             if (отличие.kind == Difference.EQUAL) return@mapNotNull null
@@ -1207,6 +1214,41 @@ internal class Reconciler(
         } else {
             Difference(Difference.DIFFERS, поле, моё, чужое, "значения расходятся")
         }
+
+    /**
+     * Текст, начинающийся с `[` или `{`, разбирается как JSON — так payload
+     * сверки возвращает массивы и объекты к их виду при хранении; всё
+     * остальное возвращается как есть.
+     */
+    private fun разобранное(узел: JsonNode): JsonNode {
+        if (!узел.isTextual) return узел
+        val текст = узел.asText().trim()
+        if (текст.isEmpty() || (текст[0] != '[' && текст[0] != '{')) return узел
+        return runCatching { mapper.readTree(текст) }.getOrElse { узел }
+    }
+
+    /**
+     * Сравнение списками текстов: массив против массива, массив против
+     * одиночного значения — одиночное читается списком из одного. Порядок
+     * элементов спора не заводит; объект читается своим кодом.
+     */
+    private fun списком(поле: String, моё: JsonNode, чужое: JsonNode): Difference {
+        fun тексты(узел: JsonNode): List<String> {
+            val элементы = if (узел.isArray) узел.toList() else listOf(узел)
+            return элементы
+                .map { if (it.isObject) it.path("code").asText("") else it.asText("") }
+                .map { it.trim().lowercase() }
+                .filter { it.isNotBlank() }
+                .sorted()
+        }
+        val мои = тексты(моё)
+        val их = тексты(чужое)
+        return if (мои == их) {
+            Difference(Difference.EQUAL, поле, моё.toString(), чужое.toString())
+        } else {
+            Difference(Difference.DIFFERS, поле, моё.toString(), чужое.toString(), "значения расходятся")
+        }
+    }
 
     /** Что у кандидата отличается от принятого — по полям ключа и соседним. */
     private fun отличиеПолей(
