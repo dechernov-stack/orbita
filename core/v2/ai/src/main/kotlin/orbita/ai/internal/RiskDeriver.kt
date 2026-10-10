@@ -108,8 +108,12 @@ class RiskDeriver(
         // ответ не разобран — тоже: формулировка у машины есть всегда.
         var ответМодели: com.fasterxml.jackson.databind.JsonNode? = null
         var модельЖива = true
+        // Причина недоступности — в заметку прогона: без неё живой день не
+        // отличить «провайдер перегружен» от «поток оборван», а починка у
+        // них разная (поймано днём живой модели шипа 6: причина терялась).
+        var причинаНедоступности: String? = null
         try {
-            val ответ = service.ask(project, KIND, промпт, maxTokens = БЮДЖЕТ, schema = AnswerSchemas.риски(mapper))
+            val ответ = service.ask(project, KIND, промпт, maxTokens = бюджет(срез.size), schema = AnswerSchemas.риски(mapper))
             ответМодели = runCatching {
                 mapper.readTree(
                     ответ.text.trim().removePrefix("```json").removePrefix("```").removeSuffix("```").trim(),
@@ -117,6 +121,7 @@ class RiskDeriver(
             }.getOrNull().takeIf { it != null && it.isObject }
         } catch (e: ProviderUnavailable) {
             модельЖива = false
+            причинаНедоступности = e.message
         }
 
         val предложения = mutableListOf<FormationProposal>()
@@ -151,7 +156,7 @@ class RiskDeriver(
         val словом = счёт.entries.joinToString(" · ") { (вид, n) -> "$вид $n" }
         val заметка = buildString {
             append("риски из разрывов: $словом, ${предложения.size} предл.")
-            if (!модельЖива) append(" — модель недоступна, формулировки шаблонные")
+            if (!модельЖива) append(" — модель недоступна (${причинаНедоступности ?: "причина не названа"}), формулировки шаблонные")
             if (ответМодели == null && модельЖива) append(" — ответ модели не разобран, формулировки шаблонные")
         }
         return synthesizer.record(project, author, отпечаток, заметка, предложения, отказы, trigger = РУЧНОЙ, пакет = ПАКЕТ)
@@ -354,7 +359,16 @@ class RiskDeriver(
 
         /** Причина запуска: ручной прогон помощника (истина synthesis_run.trigger). */
         const val РУЧНОЙ = "manual"
-
-        const val БЮДЖЕТ = 8_000
     }
+
+    /**
+     * Бюджет ответа — от числа разрывов, а не константой: константа 8000 на
+     * срезе в 671 разрыв дала пустой видимый ответ — модель съела весь бюджет
+     * скрытым мышлением над входом в 71 тыс. токенов и оборвалась по
+     * max_tokens, ни разу не коснувшись JSON (день живой модели шипа 6,
+     * PJ-ПМИ7: «провайдер вернул пустой ответ»). Счёт: формулировка — строка
+     * JSON в ~60–80 токенов; 120 на разрыв даёт запас на мышление. Малый срез
+     * держит прежний минимум 8000.
+     */
+    private fun бюджет(разрывов: Int): Int = maxOf(8_000, разрывов * 120)
 }

@@ -146,7 +146,20 @@ class RiskDeriveTest {
 
         assertTrue(прогон.diff.new.isNotEmpty(), "риски пришли шаблонными: ${прогон.note}")
         assertTrue("модель недоступна" in (прогон.note ?: ""), "помета о шаблоне: ${прогон.note}")
+        assertTrue("сеть недоступна" in (прогон.note ?: ""), "причина недоступности — в заметке: ${прогон.note}")
         assertTrue(прогон.diff.new.all { "Если " in (it.payload["statement"] ?: "") }, "формулировки шаблонные")
+    }
+
+    @Test
+    fun `бюджет ответа растёт с срезом — константа давала пустой ответ на большом срезе`() {
+        // День живой модели шипа 6: 671 разрыв при бюджете 8000 — модель съела
+        // бюджет мышлением и вернула пустой видимый ответ. Бюджет от числа
+        // разрывов: у стенда срез меньше 67 разрывов, минимум держит 8000.
+        стенд()
+
+        деривер().deriveInto(ПРОЕКТ, АВТОР, синтез)
+
+        assertEquals(8000, канал.бюджеты.single(), "малый срез — прежний минимум бюджета")
     }
 
     @Test
@@ -293,9 +306,11 @@ private class КаналРазрывов : Transport {
     var ответ: String = """{"risks":[]}"""
     var беда: String? = null
     val промпты = mutableListOf<String>()
+    val бюджеты = mutableListOf<Int?>()
 
     override fun ask(prompt: String, model: String?, maxTokens: Int?, schema: JsonNode?): Answer {
         промпты += prompt
+        бюджеты += maxTokens
         беда?.let { throw ProviderUnavailable(it) }
         return Answer(text = ответ, model = "модель-теста", tokensIn = 80, tokensOut = 120)
     }
