@@ -1297,7 +1297,11 @@ internal class Reconciler(
     }
 
     private fun следующий(область: Area, вид: String, префикс: String): String {
-        val занято = store.list(область, вид).mapNotNull {
+        // Код уникален на ВСЮ область, не на вид: префикс «IN» у замысла и
+        // стыка один, и приём стыка в проекте с замыслом IN-0001 ловил
+        // конфликт ключа entity_code_in_area, присваивая стыку тот же код
+        // (день живой модели шипа 6, PJ-ПМИ7).
+        val занято = store.list(область).mapNotNull {
             Regex("^$префикс-(\\d+)$").find(it.code)?.groupValues?.get(1)?.toIntOrNull()
         }
         return "%s-%04d".format(префикс, (занято.maxOrNull() ?: 0) + 1)

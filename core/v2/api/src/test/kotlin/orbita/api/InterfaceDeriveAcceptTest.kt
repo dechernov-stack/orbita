@@ -107,6 +107,46 @@ class InterfaceDeriveAcceptTest {
 
     // --- срез стенда ---------------------------------------------------------
 
+    @Test
+    fun `код стыка не лезет под код замысла — префикс IN у обоих, уникальность на область`() {
+        // День живой модели шипа 6 (PJ-ПМИ7): минтер считал занятые коды
+        // только внутри вида, стык получал код замысла и приём падал на
+        // entity_code_in_area. Замысел IN-0001 в проекте — стык обязан
+        // стать IN-0002.
+        store.create(
+            "IN-0001", "intent", область(), null,
+            mapper.readTree("""{"for_whom":"стенд","what":"код IN-0001 занят"}"""), пров(),
+        )
+        транспорт.ответ = """{"interfaces":[
+            {"id":"i1","a":"C-0007","b":"C-0008","name":"передача сообщений",
+             "type":"data","direction":"uni","why":"обмен EX-1"}
+        ]}"""
+        val маршруты = KnowledgeRoutes(
+            знания, AiFactory.atomize(store, знания, служба, mapper), служба, mapper, store = store,
+            deriveIf = AiFactory.deriveInterfaces(store, знания, служба, mapper),
+        )
+        val вывод = маршруты.handle(
+            "POST", "/v2/interfaces/derive-node", п, """{"node":"C-0007","author":"инженер"}""",
+        )!!
+        assertEquals(201, вывод.code, вывод.body.toString())
+        val кодПрогона = вывод.body.path("run").asText()
+        val прогон = синтезМаршруты.handle("GET", "/v2/synthesis/runs/$кодПрогона", п, null)!!
+        val карточка = прогон.body.path("diff").path("new").first().path("proposal").asText()
+
+        val приём = синтезМаршруты.handle(
+            "POST", "/v2/synthesis/runs/$кодПрогона/accept", п,
+            """{"chosen":["$карточка"],"author":"инженер","reason":"IN-0001 занят замыслом",
+                "edits":{"$карточка":{"requirement_classes":["interface"]}}}""",
+        )!!
+        assertEquals(201, приём.code, приём.body.toString())
+        assertEquals(1, приём.body.path("accepted").asInt(), "стык заведён: ${приём.body}")
+        assertEquals(
+            "IN-0002", приём.body.path("created").map { it.asText() }
+                .single { store.byCode(область(), it)?.kind == "interface" },
+            "код стыка — следующий свободный на область, не на вид",
+        )
+    }
+
     private fun область() = Area.Project(ПРОЕКТ)
     private fun пров() = Provenance(Channel.MANUAL, "инженер")
 
