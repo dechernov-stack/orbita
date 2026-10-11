@@ -17,7 +17,11 @@ internal class FactValueMigration(private val store: EntityStore, private val ma
 
     fun run(): String {
         var перенесено = 0
-        store.ofKind("fact").forEach { факт ->
+        // Отменённые не трогаем: как у осей достоверности. Иначе отменённый
+        // факт прежней формы (он держит поля вне истины — source_mark,
+        // authority, confidence) роняет update на страже, миграция обрывается
+        // посреди списка (третий повтор подряд на стенде 10.10).
+        store.ofKind("fact").filter { it.status != "cancelled" }.forEach { факт ->
             val doc = факт.doc
             // Новая форма (value-объект) или факт без единицы — уже по истине.
             if (!doc.has("unit") || doc.path("value").isObject) return@forEach
