@@ -176,7 +176,9 @@ class SemanticReconcileTest {
         сверка.preview(проект, listOf(кандидат()), автор, роль, semantic = true)
 
         assertEquals(1, канал.вызовов, "тот же срез второй раз не оплачивается")
-        assertEquals(1, служба.journal(проект).size, "журнал ИИ на повторе не прирастает")
+        val записи = служба.journal(проект)
+        assertEquals(2, записи.size, "кэш-попадание — тоже событие журнала")
+        assertEquals(1, записи.count { it.cached }, "вторая запись — из кэша")
         assertTrue(
             запуск("SR-0002").path("diff").path("semantic").path("cached").asBoolean(false),
             "второй запуск обязан сказать словами, что ответ взят из журнала",

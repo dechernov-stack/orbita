@@ -1,6 +1,8 @@
 // Журнал ИИ: у каждого вызова — токены и секунды (ответ владельца 25.09).
 // Секунды меряет служба вокруг живого вызова; ответ из журнала несёт секунды
-// исходного вызова и в журнал не пишется второй раз.
+// исходного вызова. Кэш-попадание — тоже событие журнала: повтор пишет вторую
+// запись с cached=true, чтобы рядом с прогоном, взявшим ответ из кэша,
+// в журнале не было пусто.
 package orbita.ai
 
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -35,6 +37,11 @@ class JournalSecondsTest {
         val повтор = служба.ask(проект, "document_render", "промпт")
         assertTrue(повтор.cached)
         assertEquals(ответ.seconds, повтор.seconds, "ответ из журнала несёт секунды исходного вызова")
-        assertEquals(1, служба.journal(проект).size)
+        val записи = служба.journal(проект)
+        assertEquals(2, записи.size, "кэш-попадание — тоже событие журнала")
+        assertEquals(1, записи.count { it.cached }, "одна запись — из кэша")
+        assertEquals(1, записи.count { !it.cached }, "одна запись — живой вызов")
+        val документы = store.list(Area.Project(проект), "ai_call").map { it.doc.path("cached").asBoolean() }
+        assertEquals(setOf(false, true), документы.toSet(), "поле истины `ai_call.cached` у обеих записей")
     }
 }

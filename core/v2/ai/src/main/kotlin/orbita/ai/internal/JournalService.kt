@@ -32,7 +32,12 @@ class JournalService(
         maxTokens: Int?,
         schema: JsonNode?,
     ): Answer {
-        cached(project, prompt)?.let { return it }
+        cached(project, prompt)?.let { ответ ->
+            // Кэш-попадание — тоже событие журнала: иначе рядом с прогоном,
+            // взявшим ответ из кэша, в журнале пусто и событие «потеряно».
+            record(project, kind, prompt, ответ)
+            return ответ
+        }
         val ответ = askDetached(prompt, model, maxTokens, schema)
         record(project, kind, prompt, ответ)
         return ответ
@@ -52,7 +57,10 @@ class JournalService(
         if (инструментальный == null || tools.isEmpty()) return ask(project, kind, prompt, model, maxTokens, schema)
         // Отпечаток — промпт с именами инструментов: тот же промпт без них — другой вызов.
         val ключ = prompt + "\n[инструменты: " + tools.joinToString(" · ") { it.name } + "]"
-        cached(project, ключ)?.let { return it }
+        cached(project, ключ)?.let { ответ ->
+            record(project, kind, ключ, ответ)
+            return ответ
+        }
         val ответ = замер { инструментальный.askWithTools(prompt, model, maxTokens, schema, tools, handler) }
         record(project, kind, ключ, ответ)
         return ответ
@@ -94,6 +102,7 @@ class JournalService(
         answer.tokensIn?.let { документ.put("tokens_in", it) }
         answer.tokensOut?.let { документ.put("tokens_out", it) }
         answer.seconds?.let { документ.put("seconds", it) }
+        документ.put("cached", answer.cached)
         документ.put("at", OffsetDateTime.now().toString())
         val занято = store.list(Area.Project(project), "ai_call").mapNotNull {
             Regex("^AI-(\\d+)$").find(it.code)?.groupValues?.get(1)?.toIntOrNull()
@@ -113,7 +122,7 @@ class JournalService(
                 tokensIn = it.doc.path("tokens_in").takeIf { т -> т.isNumber }?.asInt(),
                 tokensOut = it.doc.path("tokens_out").takeIf { т -> т.isNumber }?.asInt(),
                 at = it.doc.path("at").asText(""),
-                cached = false,
+                cached = it.doc.path("cached").asBoolean(false),
                 seconds = it.doc.path("seconds").takeIf { т -> т.isNumber }?.asDouble(),
             )
         }
