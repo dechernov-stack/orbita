@@ -86,9 +86,9 @@ class RiskDeriveTest {
         assertEquals("TRL 4→6", trlОснование.facet)
         assertEquals("GT-SDR", trlОснование.point)
         assertEquals(точкаId, trl.payload["due_point"], "срок-точка — id вехи, как у ручной формы")
-        // Ссылки на узел: прогон пишет ссылки словами («C-0007»), а приём
-        // заворачивает одиночную ссылку в массив (Reconciler, §2.5).
-        assertEquals("C-0007", trl.payload["refs"], "ссылка риска на узел разрыва")
+        // Ссылки на узел: прогон пишет списком значений (JSON-массив строк),
+        // приём разбирает его обратно в массив (значениеУзлом) — Reconciler, §2.5.
+        assertEquals("[\"C-0007\"]", trl.payload["refs"], "ссылка риска на узел разрыва")
         val cec = mapper.readTree(trl.payload["cec"]!!)
         assertTrue(cec.path("condition").asText("").isNotBlank(), "условие есть")
         assertTrue(cec.path("event").asText("").isNotBlank(), "событие есть")

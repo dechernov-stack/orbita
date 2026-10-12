@@ -267,6 +267,20 @@ class InterfaceDeriver(
         payload["type"] = тип
         payload["direction"] = направление
         узел.path("standard").asText("").trim().ifBlank { null }?.let { payload["standard"] = it }
+        // Классы требований (долг живой модели 10.10): модель называет, что
+        // стык покрывает, из перечня категорий требований истины; без поля
+        // сверка спрашивала класс у человека на приёме — каждый стык правился
+        // рукой. Не назвала — не кладём: missing сверки спросит, как раньше.
+        val классы = узел.path("requirement_classes").takeIf { it.isArray }
+            ?.map { it.asText("").trim() }?.filter { it.isNotBlank() }.orEmpty()
+        if (классы.isNotEmpty()) {
+            val внеПеречня = классы.filter { it !in КАТЕГОРИИ_ТРЕБОВАНИЙ }
+            require(внеПеречня.isEmpty()) {
+                "класс требований ${внеПеречня.joinToString(" · ") { "«$it»" }} вне перечня истины: ${
+                    КАТЕГОРИИ_ТРЕБОВАНИЙ.joinToString(" · ")}"
+            }
+            payload["requirement_classes"] = mapper.createArrayNode().also { м -> классы.forEach { м.add(it) } }.toString()
+        }
 
         // Ворота повтора: стык этой пары и типа уже принят — confirm на него,
         // а не второй экземпляр. Ключ — как у существующих: пара без порядка.
@@ -319,7 +333,10 @@ class InterfaceDeriver(
             appendLine()
             appendLine("Для каждого соседа, с которым обмен реален, назови interface: id (i1, i2…),")
             appendLine("a (код УЗЛА из шапки), b (код соседа из списка), name (что передаётся — строка ICD),")
-            appendLine("type и direction — из перечней схемы. Соседа из списка не вычёркивай и не")
+            appendLine("type и direction — из перечней схемы, requirement_classes — категории требований,")
+            appendLine("которые стык покрывает, из перечня: ${КАТЕГОРИИ_ТРЕБОВАНИЙ.joinToString(" · ")}")
+            appendLine("(у стыка с обменом это почти всегда interface; можно несколько).")
+            appendLine("Соседа из списка не вычёркивай и не")
             appendLine("придумывай новых: стык возможен только между узлом и соседом из списка.")
             appendLine("Ответ — по схеме.")
         }
@@ -333,6 +350,11 @@ class InterfaceDeriver(
 
     private val НАПРАВЛЕНИЯ_СТЫКА: List<String> =
         orbita.kernel.schema.GeneratedKinds.byCode["interface"]?.enums?.get("direction").orEmpty()
+
+    // Категории требований (вид «requirement», истина схем) — перечень, из
+    // которого стык называет покрываемые классы; второй копии в коде нет.
+    private val КАТЕГОРИИ_ТРЕБОВАНИЙ: List<String> =
+        orbita.kernel.schema.GeneratedKinds.byCode["requirement"]?.enums?.get("category").orEmpty()
 
     private companion object {
         /** Пакет помощника: им, не кодом понятия, отличают стыки-из-обменов среди прогонов. */

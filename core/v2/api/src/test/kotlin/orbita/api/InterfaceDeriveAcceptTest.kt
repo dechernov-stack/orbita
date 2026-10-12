@@ -65,7 +65,8 @@ class InterfaceDeriveAcceptTest {
     fun `стык из обмена через маршрут — приём той же сверкой, стык заведён`() {
         транспорт.ответ = """{"interfaces":[
             {"id":"i1","a":"C-0007","b":"C-0008","name":"передача сообщений",
-             "type":"data","direction":"uni","why":"обмен EX-1 между функциями узлов"}
+             "type":"data","direction":"uni","requirement_classes":["interface"],
+             "why":"обмен EX-1 между функциями узлов"}
         ]}"""
         val маршруты = KnowledgeRoutes(
             знания, AiFactory.atomize(store, знания, служба, mapper), служба, mapper, store = store,
@@ -82,15 +83,17 @@ class InterfaceDeriveAcceptTest {
         val прогон = синтезМаршруты.handle("GET", "/v2/synthesis/runs/$кодПрогона", п, null)!!
         val карточка = прогон.body.path("diff").path("new").first().path("proposal").asText()
 
+        // Классы требований несёт само предложение (долг живой модели 10.10 —
+        // раньше сверка спрашивала поле у человека и каждый стык правился
+        // рукой на приёме) — приём без правок.
         val приём = синтезМаршруты.handle(
             "POST", "/v2/synthesis/runs/$кодПрогона/accept", п,
-            """{"chosen":["$карточка"],"author":"инженер","reason":"обмен EX-1",
-                "edits":{"$карточка":{"requirement_classes":["interface"]}}}""",
+            """{"chosen":["$карточка"],"author":"инженер","reason":"обмен EX-1"}""",
         )!!
         assertEquals(201, приём.code, приём.body.toString())
         assertEquals(1, приём.body.path("accepted").asInt(), "стык заведён: ${приём.body}")
 
-        // Стык создан со сторонами id и классами требований из карточки узла.
+        // Стык создан со сторонами id и классами требований из предложения.
         val код = приём.body.path("created").map { it.asText() }
             .single { store.byCode(область(), it)?.kind == "interface" }
         val стык = store.byCode(область(), код)!!
@@ -99,10 +102,38 @@ class InterfaceDeriveAcceptTest {
         assertEquals("передача сообщений", стык.doc.path("name").asText())
         assertEquals("data", стык.doc.path("type").asText())
         assertEquals("uni", стык.doc.path("direction").asText())
-        assertEquals(
-            "interface", стык.doc.path("requirement_classes").first().asText(),
-            "классы требований — правкой инженера на приёме, как спрашивает сверка",
+        // Массивом, не строкой-JSON: сверка переносит payload без перелицовки.
+        assertTrue(
+            стык.doc.path("requirement_classes").isArray
+                && стык.doc.path("requirement_classes").map { it.asText() } == listOf("interface"),
+            "классы требований — массив из предложения помощника, без правки на приёме: ${стык.doc}",
         )
+    }
+
+    @Test
+    fun `класс требований вне перечня — предложение отброшено воротами`() {
+        транспорт.ответ = """{"interfaces":[
+            {"id":"i1","a":"C-0007","b":"C-0008","name":"передача сообщений",
+             "type":"data","direction":"uni","requirement_classes":["баллистика"]}
+        ]}"""
+        val маршруты = KnowledgeRoutes(
+            знания, AiFactory.atomize(store, знания, служба, mapper), служба, mapper, store = store,
+            deriveIf = AiFactory.deriveInterfaces(store, знания, служба, mapper),
+        )
+        val вывод = маршруты.handle(
+            "POST", "/v2/interfaces/derive-node", п, """{"node":"C-0007","author":"инженер"}""",
+        )!!
+        assertEquals(201, вывод.code, вывод.body.toString())
+        assertEquals(0, вывод.body.path("proposals").asInt(), "ворота перечня: ${вывод.body}")
+        // Отказ машинной вороти — в заметке прогона (так уходит в журнал).
+        val прогон = синтезМаршруты.handle(
+            "GET", "/v2/synthesis/runs/${вывод.body.path("run").asText()}", п, null,
+        )!!
+        assertTrue(
+            прогон.body.path("note").asText("").contains("вне перечня истины"),
+            "отказ называет перечень: ${прогон.body}",
+        )
+        assertEquals(0, store.list(область(), "interface").size, "стык не заведён")
     }
 
     // --- срез стенда ---------------------------------------------------------
@@ -119,7 +150,7 @@ class InterfaceDeriveAcceptTest {
         )
         транспорт.ответ = """{"interfaces":[
             {"id":"i1","a":"C-0007","b":"C-0008","name":"передача сообщений",
-             "type":"data","direction":"uni","why":"обмен EX-1"}
+             "type":"data","direction":"uni","requirement_classes":["interface"],"why":"обмен EX-1"}
         ]}"""
         val маршруты = KnowledgeRoutes(
             знания, AiFactory.atomize(store, знания, служба, mapper), служба, mapper, store = store,
@@ -135,8 +166,7 @@ class InterfaceDeriveAcceptTest {
 
         val приём = синтезМаршруты.handle(
             "POST", "/v2/synthesis/runs/$кодПрогона/accept", п,
-            """{"chosen":["$карточка"],"author":"инженер","reason":"IN-0001 занят замыслом",
-                "edits":{"$карточка":{"requirement_classes":["interface"]}}}""",
+            """{"chosen":["$карточка"],"author":"инженер","reason":"IN-0001 занят замыслом"}""",
         )!!
         assertEquals(201, приём.code, приём.body.toString())
         assertEquals(1, приём.body.path("accepted").asInt(), "стык заведён: ${приём.body}")

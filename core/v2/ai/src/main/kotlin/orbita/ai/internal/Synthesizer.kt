@@ -555,9 +555,21 @@ class Synthesizer(
      * Массив ссылок («covers ≥1») собирается через разделитель среза.
      * Непонятый объект возвращает null: он уйдёт текстом, как и прежде,
      * и будет виден человеку целиком, а не потеряется молча.
+     *
+     * Массив строк (списки значений — классы требований, применимость)
+     * кладётся своим JSON: склейка через разделитель неотличима от одного
+     * значения, и приём ложил бы список строкой-скаляром (долг живой
+     * модели 10.10: у стыка классы требований ехали «interface», а не
+     * ["interface"]).
      */
     private fun ссылкаСловами(узел: JsonNode, ссылки: Map<String, String>): String? {
         if (узел.isArray) {
+            if (узел.all { it.isTextual }) {
+                val значения = узел.map { it.asText().trim() }.filter { it.isNotBlank() }
+                return значения.takeIf { it.isNotEmpty() }?.let {
+                    mapper.createArrayNode().also { м -> значения.forEach(м::add) }.toString()
+                }
+            }
             val части = узел.mapNotNull { элемент ->
                 if (элемент.isTextual) элемент.asText().trim().ifBlank { null } else ссылкаСловами(элемент, ссылки)
             }
