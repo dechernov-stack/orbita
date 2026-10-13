@@ -67,4 +67,55 @@ class UnitsShelfNormalizeTest {
         val отличие = n.сравнить("measure", величина("<=", 180.0, "минут"), величина("<=", 3.0, "ч"))
         assertEquals(Difference.EQUAL, отличие.kind, "«минут» и «ч» приведены к канону через написания полки")
     }
+
+    // --- план (а) владельца 13.10: потолок и пол меры — полями max/min -----
+
+    private fun граница(мера: ObjectNode) =
+        orbita.knowledge.internal.NormalizeMeasures(store, mapper).bound(мера)
+
+    @Test
+    fun `max без op читается как потолок — план а владельца 13_10`() {
+        // Живой пример дня: модель дала {"unit":"s","max":"300"} — строже
+        // родителя «≤ 900 s»; до правки bound не читал max и ворота отбивали.
+        val г = граница(mapper.createObjectNode().put("unit", "s").put("max", "300"))
+        assertEquals("<=", г?.op, "max — это потолок")
+        assertEquals(300.0, г?.value, "число из max, в каноне размерности")
+        assertEquals("время", г?.dimension)
+    }
+
+    @Test
+    fun `min без op читается как пол`() {
+        val г = граница(mapper.createObjectNode().put("unit", "min").put("min", "15"))
+        assertEquals(">=", г?.op, "min — это пол")
+        assertEquals(900.0, г?.value, "15 мин = 900 с в каноне")
+        assertEquals("время", г?.dimension)
+    }
+
+    @Test
+    fun `min и max вместе — потолок сильнее (max), ворота широкие на ранних фазах`() {
+        val г = граница(mapper.createObjectNode().put("unit", "s").put("min", "60").put("max", "300"))
+        assertEquals("<=", г?.op, "диапазон читается по потолку")
+        assertEquals(300.0, г?.value)
+    }
+
+    @Test
+    fun `value и max вместе без op — потолок, живой пример дня 900 s`() {
+        val г = граница(mapper.createObjectNode().put("unit", "s").put("value", "900").put("max", "900"))
+        assertEquals("<=", г?.op, "max даёт направление, значение совпадает")
+        assertEquals(900.0, г?.value)
+    }
+
+    @Test
+    fun `знак в value сильнее max`() {
+        val г = граница(mapper.createObjectNode().put("unit", "шт").put("value", "≤ 4").put("max", "10"))
+        assertEquals("<=", г?.op, "явный знак в значении — его мнение главнее")
+        assertEquals(4.0, г?.value)
+    }
+
+    @Test
+    fun `голое value без знака остаётся точкой`() {
+        val г = граница(mapper.createObjectNode().put("unit", "s").put("value", "900"))
+        assertEquals(null, г?.op, "без op, min и max направления нет — точка, как раньше")
+        assertEquals(900.0, г?.value)
+    }
 }

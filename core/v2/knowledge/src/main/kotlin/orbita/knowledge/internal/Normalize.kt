@@ -387,10 +387,23 @@ internal class NormalizeMeasures(
     override fun bound(measure: JsonNode): orbita.knowledge.api.Bound? {
         val единица = measure.path("unit").asText("").trim().ifBlank { return null }
         // Оператор — из поля op либо из знака в значении («≤ 4»); число — то,
-        // что осталось. Канон значения берёт та же нормализация, что и сравнение.
-        val (оп, числоТекст) = ВеличинаФакта.разобрать(
-            measure.path("value").asText(""), measure.path("op").asText("").ifBlank { null },
-        )
+        // что осталось. Решение владельца 13.10 (план а — на ранних фазах
+        // ворота широкие): потолок и пол меры идут ПОЛЯМИ — `max` читается
+        // как «≤», `min` как «≥» (истина `measure{op?, value|min,max}`).
+        // Явный op и знак в значении сильнее; `max` сильнее `min`; голое
+        // value без знака остаётся точкой. Канон — та же нормализация, что
+        // и у сравнения.
+        val (оп, числоТекст) = run {
+            val явный = ВеличинаФакта.разобрать(
+                measure.path("value").asText(""), measure.path("op").asText("").ifBlank { null },
+            )
+            when {
+                явный.first != null -> явный
+                measure.path("max").asText("").isNotBlank() -> "<=" to measure.path("max").asText("")
+                measure.path("min").asText("").isNotBlank() -> ">=" to measure.path("min").asText("")
+                else -> явный
+            }
+        }
         val число = ВеличинаФакта.парсЧисло(числоТекст) ?: return null
         val канон = нормализация.величина(
             mapper.createObjectNode().put("value", число).put("unit", единица),
