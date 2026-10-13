@@ -32,14 +32,20 @@ class JournalService(
         maxTokens: Int?,
         schema: JsonNode?,
     ): Answer {
-        cached(project, prompt)?.let { ответ ->
+        // Схема — часть ключа кэша: тот же промпт с новой схемой ответа —
+        // другой вызов (живой отбой 13.10: схема потребовала requirement_classes,
+        // кэш по одному промпту отдал старый ответ без поля).
+        val ключ = if (schema != null)
+            prompt + "\n[схема ответа: " + orbita.kernel.api.Fingerprints.prompt(schema.toString()) + "]"
+        else prompt
+        cached(project, ключ)?.let { ответ ->
             // Кэш-попадание — тоже событие журнала: иначе рядом с прогоном,
             // взявшим ответ из кэша, в журнале пусто и событие «потеряно».
-            record(project, kind, prompt, ответ)
+            record(project, kind, ключ, ответ)
             return ответ
         }
         val ответ = askDetached(prompt, model, maxTokens, schema)
-        record(project, kind, prompt, ответ)
+        record(project, kind, ключ, ответ)
         return ответ
     }
 

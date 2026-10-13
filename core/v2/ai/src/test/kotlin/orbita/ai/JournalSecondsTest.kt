@@ -44,4 +44,25 @@ class JournalSecondsTest {
         val документы = store.list(Area.Project(проект), "ai_call").map { it.doc.path("cached").asBoolean() }
         assertEquals(setOf(false, true), документы.toSet(), "поле истины `ai_call.cached` у обеих записей")
     }
+
+    @Test
+    fun `схема ответа — часть ключа кэша, та же схема из журнала, новая — живой вызов`() {
+        store.create(проект, "project", Area.Project(проект), "1", mapper.createObjectNode().put("name", "Журнал"), Provenance(Channel.MANUAL, "тест"))
+        var вызовов = 0
+        val служба = AiFactory.service(
+            store,
+            Transport { _, _, _, _ -> вызовов += 1; Answer("ответ-$вызовов", "модель-теста", 3, 2) },
+            mapper,
+        )
+        val схема = mapper.createObjectNode().put("type", "object")
+        val инаяСхема = mapper.createObjectNode().put("type", "object").put("additionalProperties", false)
+
+        служба.ask(проект, "document_render", "промпт", null, null, схема)
+        val повторТойЖе = служба.ask(проект, "document_render", "промпт", null, null, схема)
+        assertTrue(повторТойЖе.cached, "та же схема — ответ из журнала")
+        val сИнойСхемой = служба.ask(проект, "document_render", "промпт", null, null, инаяСхема)
+        assertTrue(!сИнойСхемой.cached, "новая схема — другой вызов, кэш по одному промпту не отдаёт старый ответ")
+        assertEquals(2, вызовов, "модель звали дважды: первый вызов и вызов с иной схемой")
+        assertEquals("ответ-2", сИнойСхемой.text)
+    }
 }
