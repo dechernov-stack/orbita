@@ -14,6 +14,7 @@ import orbita.ai.api.Answer
 import orbita.ai.api.Basis
 import orbita.ai.api.Transport
 import orbita.ai.api.Verdict
+import orbita.ai.internal.AnswerSchemas
 import orbita.ai.internal.InterfaceDeriver
 import orbita.ai.internal.Synthesizer
 import orbita.kernel.api.Area
@@ -77,6 +78,19 @@ class InterfaceDeriveTest {
             "образец заполнения с классом: $промпт")
         assertTrue("functional" in промпт && "environment" in промпт,
             "перечень категорий истины в промпте: $промпт")
+    }
+
+    @Test
+    fun `схема ответа стыков — requirement_classes обязателен, перечень из истины`() {
+        val схема = AnswerSchemas.стыки(mapper)
+        val стык = схема.path("properties").path("interfaces").path("items")
+
+        assertTrue(стык.path("required").any { it.asText() == "requirement_classes" },
+            "классы обязательны в схеме провайдера: $стык")
+        val классы = стык.path("properties").path("requirement_classes")
+        assertEquals(1, классы.path("minItems").asInt(), "минимум один класс: $классы")
+        assertTrue(классы.path("items").path("enum").any { it.asText() == "interface" },
+            "перечень категорий — из истины схем: $классы")
     }
 
     @Test
