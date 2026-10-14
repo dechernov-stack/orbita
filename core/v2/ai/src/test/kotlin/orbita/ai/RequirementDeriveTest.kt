@@ -205,6 +205,68 @@ class RequirementDeriveTest {
     }
 
     @Test
+    fun `ворота — цена долларовой мелочью — отбито`() {
+        // Живой отбой 14.10: «стоимость терминала ≤ 1e-6 млн $» — доллар за
+        // терминал, унаследовано от мусорной меры раздачи целей SR-0039.
+        // Ворота адекватности (ответ владельца): ниже 10 $ в базовой валюте —
+        // отказ, приводит в сообщении базовую цену.
+        схема(видУзла = "element")
+        val дериверД = дериверСМерами(ЗаглушкаМер(setOf("млн $"), mapOf("млн $" to "деньги")))
+        канал.ответ = """
+            {"requirements":[
+              {"id":"r1","derives_from":"RQ-S-1","statement":"Терминал не дороже долларовой мелочи.",
+               "measure":{"value":"0.000001","unit":"млн $"},"why":"искажённая массовка"}
+            ]}
+        """.trimIndent()
+
+        val прогон = дериверД.deriveInto(ПРОЕКТ, "C-0007", АВТОР, синтез)
+
+        assertTrue(прогон.diff.new.isEmpty(), "доллар за терминал вне адекватного порядка — отбито")
+        assertTrue("адекватного порядка" in (прогон.note ?: ""), "отказ называет ворота: ${прогон.note}")
+        assertTrue("1 $" in (прогон.note ?: ""), "отказ показывает цену в базовой валюте: ${прогон.note}")
+    }
+
+    @Test
+    fun `ворота — адекватная цена проходит, рублевая мелочь отбита`() {
+        // 50 тыс $ — годно; 50 ₽ — отбито, 500 тыс ₽ — годно: пороги своей шкалы.
+        схема(видУзла = "element")
+        val дериверД = дериверСМерами(
+            ЗаглушкаМер(setOf("млн $", "руб", "тыс. руб"), mapOf("млн $" to "деньги", "руб" to "деньги", "тыс. руб" to "деньги")),
+        )
+        канал.ответ = """
+            {"requirements":[
+              {"id":"r1","derives_from":"RQ-S-1","statement":"Терминал не дороже 50 тысяч долларов.",
+               "measure":{"value":"0.05","unit":"млн $"},"why":"адекватная цена"},
+              {"id":"r2","derives_from":"RQ-S-1","statement":"Комплектующее за 50 рублей.",
+               "measure":{"value":"50","unit":"руб"},"why":"рублевая мелочь"},
+              {"id":"r3","derives_from":"RQ-S-1","statement":"Узел не дороже 500 тысяч рублей.",
+               "measure":{"value":"500","unit":"тыс. руб"},"why":"адекватная цена"}
+            ]}
+        """.trimIndent()
+
+        val прогон = дериверД.deriveInto(ПРОЕКТ, "C-0007", АВТОР, синтез)
+
+        assertEquals(2, прогон.diff.new.size, "две адекватные цены живут, рублевая мелочь отбита")
+        assertTrue("адекватного порядка" in (прогон.note ?: ""), "отказ называет ворота: ${прогон.note}")
+    }
+
+    @Test
+    fun `ворота — немонетарная мера ценовых ворот не касается`() {
+        // Время вне денежных порогов по-прежнему проходит (регрессия смежных ворот).
+        схемаСМерой("≤ 900", "мин")
+        канал.ответ = """
+            {"requirements":[
+              {"id":"r1","derives_from":"RQ-S-1","statement":"Модуль отвечает не дольше 120 мин.",
+               "measure":{"value":"≤ 120","unit":"мин"},"why":"строже родителя"}
+            ]}
+        """.trimIndent()
+
+        val прогон = деривер.deriveInto(ПРОЕКТ, "C-0007", АВТОР, синтез)
+
+        assertEquals(1, прогон.diff.new.size, "минутная мера не тронута ценовыми воротами")
+    }
+
+    @Test
     fun `ворота — вид узла не даёт ступени — пустой прогон, модель не зовём`() {
         паспорт()
         компонент("C-0100", parent = null, kind = "") // узел без вида: ступени нет
@@ -282,6 +344,9 @@ class RequirementDeriveTest {
         требование("RQ-S-1", level = "system", carrier = корень, statement = "Показатель КА.", measure = value to unit)
     }
 
+    /** Деривер с иной заглушкой мер (ценовые ворота тестируются своей размерностью денег). */
+    private fun дериверСМерами(мерыД: Measures) = RequirementDeriver(store, знания, служба, мерыД, mapper = mapper)
+
     private companion object {
         const val ПРОЕКТ = "PRJ"
         const val АВТОР = "инженер"
@@ -300,8 +365,11 @@ private class КаналДеривации : Transport {
 }
 
 /** Меры-заглушка: единица известна, если она в наборе; знак берётся из значения («≤ 4»). */
-private class ЗаглушкаМер(private val известные: Set<String>) : Measures {
-    override fun dimension(unit: String): String? = if (unit.trim() in известные) "dim:${unit.trim()}" else null
+private class ЗаглушкаМер(
+    private val известные: Set<String>,
+    private val размерности: Map<String, String> = emptyMap(),
+) : Measures {
+    override fun dimension(unit: String): String? = размерности[unit.trim()] ?: if (unit.trim() in известные) "dim:${unit.trim()}" else null
 
     override fun canonical(measure: JsonNode): Canonical? {
         val единица = measure.path("unit").asText("").trim()
