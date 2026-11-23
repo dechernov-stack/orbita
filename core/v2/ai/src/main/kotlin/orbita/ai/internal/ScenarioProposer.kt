@@ -23,6 +23,7 @@ import orbita.ai.api.ScenarioProposalRun
 import orbita.ai.api.ScenariosAccepted
 import orbita.ai.api.ScenariosUndone
 import orbita.kernel.api.Area
+import orbita.kernel.api.projectShelves
 import orbita.kernel.api.Channel
 import orbita.kernel.api.Entity
 import orbita.kernel.api.EntityStore
@@ -43,7 +44,7 @@ class ScenarioProposer(
         val узлы = живые(область, "component")
         val стороны = живые(область, "stakeholder")
         val имеющиеся = живые(область, "functional_chain")
-        val полка = store.list(Area.Library, "architecture_template").firstOrNull()
+        val полка = store.projectShelves(project, "architecture_template").firstOrNull()
 
         val промпт = prompt(сервисы, узлы, стороны, имеющиеся, полка)
         val изЖурнала = service.cached(project, промпт) != null
@@ -219,13 +220,16 @@ class ScenarioProposer(
         if (стороны.isEmpty()) appendLine("- сторон ещё нет")
         стороны.forEach { с -> appendLine("- ${с.code} · «${имя(с)}» · ${с.doc.path("role").asText("")}") }
         appendLine()
-        val цепочки = полка?.doc?.path("SA")?.path("functional_chains")?.takeIf { it.isArray }
-        val функции = полка?.doc?.path("SA")?.path("functions")?.associate { it.path("code").asText() to it.path("name").asText("") }.orEmpty()
+        val цепочки = полка?.doc?.path("chains")?.takeIf { it.isArray } ?: полка?.doc?.path("SA")?.path("functional_chains")?.takeIf { it.isArray }
+        val функции = (полка?.doc?.path("functions")?.takeIf { it.isArray } ?: полка?.doc?.path("SA")?.path("functions"))?.associate { it.path("code").asText() to it.path("name").asText("") }.orEmpty()
         appendLine("## Цепочки полки Arcadia (${цепочки?.size() ?: 0})")
         if (цепочки == null || цепочки.isEmpty) appendLine("- полки нет: сценарии — из сервисов")
         цепочки?.forEach { ц ->
             append("- ${ц.path("code").asText()} · «${ц.path("name").asText()}»: ")
             appendLine(ц.path("steps").joinToString(" → ") { ш -> функции[ш.asText()] ?: ш.asText() })
+            listOf("trigger", "product", "decision", "acceptance").forEach { field ->
+                ц.path(field).asText("").takeIf { it.isNotBlank() }?.let { appendLine("  $it") }
+            }
         }
         appendLine()
         appendLine("## Сценарии, которые уже есть (${имеющиеся.size}) — не повторять")

@@ -4,6 +4,7 @@ package orbita.programmatics.internal
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
 import orbita.kernel.api.Area
+import orbita.kernel.api.projectShelves
 import orbita.kernel.api.Channel
 import orbita.kernel.api.Entity
 import orbita.kernel.api.EntityStore
@@ -22,12 +23,12 @@ class EntityProgrammatics(
     private val mapper: ObjectMapper = ObjectMapper(),
 ) : Programmatics {
 
-    private fun полкаWbs(): Entity? =
-        store.list(Area.Library, "wbs_template").maxByOrNull { it.version }
+    private fun полкаWbs(project: String): Entity? =
+        store.projectShelves(project, "wbs_template").maxByOrNull { it.version }
 
     override fun wbsOffer(project: String): List<WbsOffer> {
         val область = Area.Project(project)
-        val полка = полкаWbs() ?: error("полки WBS нет: загрузите полки (tools/v2/load_shelves.py)")
+        val полка = полкаWbs(project) ?: error("полки WBS нет: загрузите полки (tools/v2/load_shelves.py)")
         val узлыПоКоду = store.list(область, "component").associateBy { it.code }
         val взятые = store.list(область, "wbs_package").map { it.code }.toSet()
 
@@ -61,7 +62,7 @@ class EntityProgrammatics(
 
     override fun takeWbs(project: String, author: String, codes: List<String>): List<PackageView> {
         val область = Area.Project(project)
-        val полка = полкаWbs() ?: error("полки WBS нет: загрузите полки (tools/v2/load_shelves.py)")
+        val полка = полкаWbs(project) ?: error("полки WBS нет: загрузите полки (tools/v2/load_shelves.py)")
         val узлыПоКоду = store.list(область, "component").associateBy { it.code }
         // Пусто — рекомендованный набор: пакеты, которым есть с чем быть
         // парными, плюс сквозные. Всё подряд не берётся: 41 пакет без пары

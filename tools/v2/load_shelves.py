@@ -25,6 +25,7 @@ import urllib.request
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import stand_session  # noqa: E402
+import eo_shelves  # noqa: E402
 
 КОРЕНЬ = pathlib.Path(__file__).resolve().parent.parent.parent
 ПОСТАВКА = КОРЕНЬ / "docs/tz/v2"
@@ -232,6 +233,26 @@ def вызов(метод: str, путь: str, тело=None):
         return запрос(метод, путь, тело)
 
 
+def загрузить_дзз() -> int:
+    итоги = {"created": 0, "updated": 0, "unchanged": 0}
+    for вид, запись in eo_shelves.records():
+        код = запись["code"]
+        тело = {"kind": вид, "code": код, "doc": запись, "author": "поставка ДЗЗ"}
+        if вид == "glossary_term":
+            тело["status"] = "candidate"
+        try:
+            ответ = вызов("POST", "/v2/shelves", тело)
+        except urllib.error.HTTPError as e:
+            print(f"ДЗЗ: {вид} {код}: HTTP {e.code}: {e.read().decode(errors='replace')[:240]}", file=sys.stderr)
+            return 2
+        if ответ.get("code") != код or ответ.get("kind") != вид or ответ.get("state") not in итоги:
+            print(f"ДЗЗ: стенд не подтвердил запись {вид} {код}: {ответ}", file=sys.stderr)
+            return 2
+        итоги[ответ["state"]] += 1
+    print(f"ДЗЗ: создано {итоги['created']}, обновлено {итоги['updated']}, без изменений {итоги['unchanged']}")
+    return 0
+
+
 def загрузить() -> int:
     залито = обновлено = пропущено = 0
     непринято: list[str] = []
@@ -269,13 +290,14 @@ def загрузить() -> int:
             + ", ".join(непринято)
         )
         return 2
-    return 0
+    return загрузить_дзз()
 
 
 if __name__ == "__main__":
     разбор = argparse.ArgumentParser(description="загрузчик полок v2")
     разбор.add_argument("base", nargs="?", default="http://localhost:8080/api")
     разбор.add_argument("--check", action="store_true", help="сторож отпечатков поставки")
+    разбор.add_argument("--eo-only", action="store_true", help="загрузить только класс ДЗЗ и его полки")
     аргументы = разбор.parse_args()
     БАЗА = аргументы.base
-    sys.exit(сторож() if аргументы.check else загрузить())
+    sys.exit(сторож() if аргументы.check else загрузить_дзз() if аргументы.eo_only else загрузить())

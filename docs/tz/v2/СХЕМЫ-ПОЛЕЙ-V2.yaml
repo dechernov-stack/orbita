@@ -4157,6 +4157,51 @@ kinds:
     label: Уверенность
   export: матрица применимости; обоснования целей; MCReport §3
   engine: новый
+- n: 289
+  code: observation_task
+  name: тематическая задача наблюдения Земли
+  layer: L1
+  born_in: 6
+  status_model: draft|accepted|cancelled
+  fields:
+  - name: name
+    type: str
+    required: true
+    label: Тематическая задача
+  - name: source_id
+    type: str
+    required: true
+    label: Код в исходном каталоге
+  - name: section
+    type: str
+    required: true
+    label: Раздел исходника
+  - name: record_type
+    type: str
+    required: true
+    label: Тип результата
+  - name: profile
+    type: str
+    required: true
+    label: Область применения
+  - name: validation
+    type: str
+    required: true
+    label: Способ проверки
+  - name: radar
+    type: str
+    required: false
+    label: РЛС
+  - name: hyperspectral
+    type: str
+    required: false
+    label: Гиперспектральная съёмка
+  - name: infrared
+    type: str
+    required: false
+    label: ИК-съёмка
+  export: —
+  engine: есть
 versioning_rules:
 - правка поля → новая версия объекта (автор, valid_from); старая остаётся
 - правка после baseline → только с basis; помета after_baseline_changed; связи объекта → suspect

@@ -18,6 +18,7 @@ import orbita.ai.api.DistributionAccepted
 import orbita.ai.api.DistributionRun
 import orbita.ai.api.DistributionUndone
 import orbita.kernel.api.Area
+import orbita.kernel.api.projectShelves
 import orbita.kernel.api.Channel
 import orbita.kernel.api.Entity
 import orbita.kernel.api.EntityStore
@@ -148,8 +149,8 @@ internal class ФункцииКУзлам(
         appendLine("причиной «не на что»: выдумывать узел нельзя.")
         appendLine("Распределения, которые уже есть, повторять можно — они не удвоятся.")
         appendLine()
-        val полка = store.list(Area.Library, "architecture_template").firstOrNull()
-        val подсказки = полка?.doc?.path("SA")?.path("functions")
+        val полка = (область as? Area.Project)?.let { store.projectShelves(it.id, "architecture_template").firstOrNull() }
+        val подсказки = (полка?.doc?.path("functions")?.takeIf { it.isArray } ?: полка?.doc?.path("SA")?.path("functions"))
             ?.filter { it.path("allocated_to").asText("").isNotBlank() }
             ?.associate { it.path("name").asText("").lowercase() to it.path("allocated_to").asText() }.orEmpty()
         appendLine("## Функции (${функции.size})")

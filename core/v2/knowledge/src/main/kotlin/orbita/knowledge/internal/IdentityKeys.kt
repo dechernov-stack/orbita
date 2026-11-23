@@ -21,6 +21,7 @@ package orbita.knowledge.internal
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import orbita.kernel.api.Area
+import orbita.kernel.api.projectShelves
 import orbita.kernel.api.EntityStore
 import orbita.knowledge.schema.GeneratedOntology
 import orbita.library.api.Shelves
@@ -271,7 +272,7 @@ internal class IdentityKeys(
          */
         fun of(store: EntityStore, area: Area, shelves: Shelves? = null): IdentityKeys {
             val словарь = mutableMapOf<String, String>()
-            (store.list(Area.Library, "glossary_term") + store.list(area, "glossary_term")).forEach { термин ->
+            ((if (area is Area.Project) store.projectShelves(area.id, "glossary_term") else store.list(Area.Library, "glossary_term")) + store.list(area, "glossary_term")).forEach { термин ->
                 val канон = плоско(термин.doc.path("term_ru").asText(""))
                 if (канон.isBlank()) return@forEach
                 // Синонимы термина (истина `glossary_term.synonyms`, шип 4 §2): «Ространснадзор»

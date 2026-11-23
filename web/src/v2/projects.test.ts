@@ -137,7 +137,13 @@ describe('экран 3 «Новый проект»: одна форма двум
     expect(вызовы).toContain('gate_dates: { gate: string; date: string }[]')
     expect(вызовы).toContain("вызов<{ project: string }>('/projects', { method: 'POST'")
     expect(новый).toContain('gate_dates: точки.map((точка, i) => ({ gate: точка.key, date: датаТочки(точка, i) }))')
-    expect(новый).toContain('.then((ответ) => onCreated(ответ.project))')
+    expect(новый).toContain('project = ответ.project')
+    expect(новый).toContain('setCreatedProject(project)')
+    expect(новый).toContain('onCreated(project)')
+    for (const action of ['takeFrame', 'takeWbs', 'takeModels']) {
+      expect(новый.indexOf('await api.' + action)).toBeGreaterThan(новый.indexOf('if (starter && prefill)'))
+      expect(новый.indexOf('await api.' + action)).toBeLessThan(новый.indexOf('onCreated(project)'))
+    }
   })
 
   it('дата считается от старта днями, а не строкой с подстановкой года', () => {

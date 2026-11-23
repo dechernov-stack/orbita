@@ -33,7 +33,7 @@ class ModelToolboxTest {
         evaluator = ReadinessFactory.gateEvaluator(store, links, scenesDone = { emptySet() }, gatesPassed = { emptySet() }),
         passedGates = { mutableSetOf() }, gatePlan = { emptyMap() },
     )
-    private val набор = ModelToolbox(store, KnowledgeFactory.glossary(store, mapper), индекс, движок, полки, mapper)
+    private val набор = ModelToolbox(store, KnowledgeFactory.glossary(store, mapper), индекс, движок, mapper)
 
     @BeforeTest
     fun чисто() {

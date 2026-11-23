@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
 import orbita.kernel.api.Area
+import orbita.kernel.api.projectShelves
 import orbita.kernel.api.Channel
 import orbita.kernel.api.Entity
 import orbita.kernel.api.EntityStore
@@ -43,7 +44,7 @@ internal class GlossaryIndex(
     }
 
     override fun terms(area: Area): List<Term> =
-        (store.list(Area.Library, "glossary_term") + (if (area is Area.Library) emptyList() else store.list(area, "glossary_term")))
+        ((if (area is Area.Project) store.projectShelves(area.id, "glossary_term") else store.list(Area.Library, "glossary_term")) + (if (area is Area.Library) emptyList() else store.list(area, "glossary_term")))
             .filter { it.status != "cancelled" && it.status != "obsolete" }
             .map { term(it) }
 
