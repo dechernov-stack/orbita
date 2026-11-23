@@ -17,6 +17,7 @@ export function Library({ project }: { project: string | null }) {
   const [полки, setПолки] = useState<СтрокаКаталога[]>([])
   const [пустые, setПустые] = useState<string[]>([])
   const [помета, setПомета] = useState('')
+  const [filter, setFilter] = useState('')
   const [окно, setОкно] = useState<ОкноВзятия | null>(null)
   const [отмечено, setОтмечено] = useState<string[]>([])
   const [итог, setИтог] = useState<string | null>(null)
@@ -33,14 +34,15 @@ export function Library({ project }: { project: string | null }) {
 
   const открыть = (полка: СтрокаКаталога) => {
     if (!project) return
-    setОтказ(null); setИтог(null)
+    setОтказ(null); setИтог(null); setFilter('')
     библиотекаApi.окно(project, полка.code)
       .then((о) => { setОкно(о); setОтмечено(о.items.filter((з) => з.recommended && !з.taken).map((з) => з.code)) })
       .catch((e) => setОтказ(String(e.message ?? e)))
   }
 
+  const просмотр = Boolean(окно && (!окно.takeable || окно.mechanism))
   const взять = () => {
-    if (!project || !окно || отмечено.length === 0) return
+    if (!project || !окно || просмотр || отмечено.length === 0) return
     setЗанято(true); setОтказ(null)
     библиотекаApi.взять(project, окно.shelf, отмечено)
       .then((и) => { setИтог(и.note); setОкно(null); setОтмечено([]); перечитать() })
@@ -89,6 +91,8 @@ export function Library({ project }: { project: string | null }) {
                   <td>{п.taken > 0 ? п.taken : <span className="v2-dim">ничего</span>}</td>
                   <td className="v2-dim">{п.what}</td>
                   <td>
+                    {помеха && п.count > 0 && <button type="button" className="v2-link"
+                      onClick={() => открыть(п)}>Посмотреть состав</button>}
                     <button type="button" className={помеха ? undefined : 'v2-primary'}
                       disabled={Boolean(помеха)}
                       title={помеха ?? `открыть окно взятия: отметить записи и взять их в проект «${project}»`}
@@ -109,9 +113,9 @@ export function Library({ project }: { project: string | null }) {
       {окно && (
         <div className="v2-take" data-why="работа">
           <div className="v2-card__head">
-            <span className="v2-card__title">Взять с полки · {окно.title}</span>
+            <span className="v2-card__title">{просмотр ? 'Состав полки' : 'Взять с полки'} · {окно.title}</span>
             <span className="v2-card__count">
-              возьмём {окно.take}
+              {просмотр ? <>записей {окно.items.length}</> : <>возьмём {окно.take}</>}
               {окно.already > 0 ? ` · уже есть ${окно.already}` : ''}
               {окно.blocked > 0 ? ` · заперто ${окно.blocked}` : ''}
             </span>
@@ -121,9 +125,15 @@ export function Library({ project }: { project: string | null }) {
               закрыть
             </button>
           </div>
-          <div className="v2-empty__why">{окно.note}</div>
+          <div className="v2-empty__why">{просмотр ? окно.why ?? (окно.mechanism && механизмом(окно.mechanism)) : окно.note}</div>
           <div className="v2-take__list">
-            {окно.items.map((з) => {
+            {окно.kind === 'observation_task' && <label className="v2-field">
+              Поиск по задаче, разделу или коду
+              <input type="search" value={filter} onChange={(e) => setFilter(e.target.value)} />
+            </label>}
+            {окно.items.filter((з) => окно.kind !== 'observation_task' ||
+              [з.code, з.title, з.detail].join(' ').toLocaleLowerCase().includes(filter.trim().toLocaleLowerCase())
+            ).map((з) => {
               const заперта = з.needs.length > 0 && !з.taken
               return (
                 <label key={з.code}
@@ -134,7 +144,7 @@ export function Library({ project }: { project: string | null }) {
                     : заперта
                       ? `сначала возьмите ${з.needs.map((н) => н.title).join(', ')} — без родителя узел был бы сиротой`
                       : `отметить «${з.title}» к взятию`}>
-                  {з.taken ? (
+                  {просмотр ? null : з.taken ? (
                     <span className="v2-dim">есть в проекте</span>
                   ) : (
                     <input type="checkbox" checked={отмечено.includes(з.code)} disabled={заперта}
@@ -145,6 +155,7 @@ export function Library({ project }: { project: string | null }) {
                   )}
                   <span>
                     <span className="v2-mono">{з.code}</span> {з.title}
+                    {з.detail && <small className="v2-dim"> · {з.detail}</small>}
                     {заперта && (
                       <span className="v2-dim"> · взять {з.needs.map((н) => н.title).join(', ')}</span>
                     )}
@@ -158,7 +169,7 @@ export function Library({ project }: { project: string | null }) {
               станут доступны: {окно.unlocks.map((д) => `${д.count} ${д.kind}`).join(', ')}
             </div>
           )}
-          <div className="v2-form__actions">
+          {!просмотр && <div className="v2-form__actions">
             <button type="button" className="v2-primary" disabled={отмечено.length === 0 || занято}
               title={отмечено.length === 0
                 ? 'не отмечено ни одной записи — отметьте, что взять'
@@ -168,7 +179,7 @@ export function Library({ project }: { project: string | null }) {
               {занято ? 'Беру…' : `Взять (${отмечено.length})`}
             </button>
             {отмечено.length === 0 && <span className="v2-empty__why">Нажать нельзя: ничего не отмечено.</span>}
-          </div>
+          </div>}
         </div>
       )}
     </div>
@@ -178,6 +189,7 @@ export function Library({ project }: { project: string | null }) {
 /** Своим механизмом — словами, а не молчащей кнопкой. */
 function механизмом(механизм: string): string {
   if (механизм === 'frame') return 'каркас состава берётся на экране концепции: «Взять из полки» — библиотека эту работу не повторяет'
+  if (механизм === 'models') return 'Модели принимаются на экране моделей системы.'
   if (механизм === 'wbs') return 'каркас работ берётся окном пакетов на экране работ — библиотека эту работу не повторяет'
   return 'у этой полки свой механизм взятия — библиотека его не подменяет'
 }

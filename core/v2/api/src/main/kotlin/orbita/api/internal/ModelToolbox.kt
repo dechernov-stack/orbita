@@ -11,10 +11,10 @@ import com.fasterxml.jackson.databind.node.ObjectNode
 import orbita.ai.api.Tool
 import orbita.ai.api.ToolHandler
 import orbita.kernel.api.Area
+import orbita.kernel.api.projectShelves
 import orbita.kernel.api.EntityStore
 import orbita.knowledge.api.Glossary
 import orbita.knowledge.api.KnowledgeIndex
-import orbita.library.api.Shelves
 import orbita.process.api.ProcessEngine
 
 class ModelToolbox(
@@ -22,7 +22,6 @@ class ModelToolbox(
     private val glossary: Glossary,
     private val index: KnowledgeIndex,
     private val engine: ProcessEngine,
-    private val shelves: Shelves,
     private val mapper: ObjectMapper = ObjectMapper(),
 ) {
     fun tools(): List<Tool> = listOf(
@@ -69,7 +68,7 @@ class ModelToolbox(
                 .put("parent", свой.doc.path("parent").asText("")).put("source", "проект")
                 .also { у -> у.set<JsonNode>("params", свой.doc.path("params").takeIf { it.isArray } ?: mapper.createArrayNode()) }
         }
-        val узлы = shelves.of("pbs_template").flatMap { п -> п.doc.path("nodes").toList() }
+        val узлы = store.projectShelves(project, "pbs_template").flatMap { п -> п.doc.path("nodes").toList() }
         val полочный = узлы.firstOrNull { glossary.flat(it.path("code").asText("")) == игла || glossary.flat(it.path("name").asText("")) == игла }
             ?: return нет("узла «$код» нет ни в проекте, ни на полке состава")
         return mapper.createObjectNode().put("code", полочный.path("code").asText()).put("name", полочный.path("name").asText(""))
@@ -82,7 +81,7 @@ class ModelToolbox(
         val игла = glossary.flat(код)
         val свой = store.list(Area.Project(project), "interface").firstOrNull { glossary.flat(it.code) == игла || glossary.flat(it.doc.path("name").asText("")) == игла }
         if (свой != null) return свой.doc.deepCopy<ObjectNode>().put("code", свой.code).put("source", "проект")
-        val полочный = shelves.of("interface_template").flatMap { п -> п.doc.path("interfaces").toList() }
+        val полочный = store.projectShelves(project, "interface_template").flatMap { п -> п.doc.path("interfaces").toList() }
             .firstOrNull { glossary.flat(it.path("code").asText("")) == игла || glossary.flat(it.path("name").asText("")) == игла }
             ?: return нет("стыка «$код» нет ни в проекте, ни на полке стыков")
         return полочный.deepCopy<ObjectNode>().put("source", "полка стыков")

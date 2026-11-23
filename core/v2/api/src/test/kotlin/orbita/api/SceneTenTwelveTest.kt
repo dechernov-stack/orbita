@@ -163,6 +163,63 @@ class SceneTenTwelveTest {
     }
 
     @Test
+    fun `класс ДЗЗ открывается из формы и принимает собственные полки рядом с IoT`() {
+        val root = TestDbV2.repoRoot
+        val generator = ProcessBuilder("python3", root.resolve("tools/v2/eo_shelves.py").toString()).start()
+        val records = generator.inputStream.use { mapper.readTree(it) }
+        assertEquals(0, generator.waitFor())
+        fun put(kind: String, doc: JsonNode) {
+            val body = mapper.createObjectNode().put("kind", kind).put("code", doc.path("code").asText())
+            if (kind == "glossary_term") body.put("status", "candidate")
+            body.set<JsonNode>("doc", doc)
+            val result = router.handle("POST", "/v2/shelves", emptyMap(), body.toString())!!
+            assertTrue(result.code in 200..299, result.body.toString())
+        }
+        put("pbs_template", mapper.readTree(root.resolve("docs/tz/v2/ПОЛКА-PBS.json").toFile()))
+        put("model_template", mapper.readTree(root.resolve("docs/tz/v2/полки-порождённые/ПОЛКА-МОДЕЛИ-СИСТЕМЫ.json").toFile()))
+        put("mission_class", mapper.readTree(root.resolve("docs/tz/v2/полки-порождённые/ПОЛКА-КЛАСС-МИССИИ-НОО-IOT.json").toFile()))
+        for (entry in records) put(entry[0].asText(), entry[1])
+        val mission = records.last()[1]
+        fun call(method: String, path: String, project: String, body: String? = null): JsonNode {
+            val response = router.handle(method, "/v2/" + path, mapOf("project" to project), body)!!
+            assertTrue(response.code in 200..299, "$path: ${response.body}")
+            return response.body
+        }
+        val eo = "PJ-EO-TEST"
+        val q = mapper.createObjectNode().put("code", eo).put("name", "ДЗЗ").put("mission_class", mission.path("name").asText())
+        val opened = call("POST", "projects", eo, q.toString())
+        assertEquals(mission.path("default_constraints").size(), opened.path("prefilled").path("constraints").asInt())
+        repeat(2) {
+            call("POST", "components/frame", eo, "{}")
+            call("POST", "wbs/take", eo, "{}")
+            call("POST", "models/take", eo, "{}")
+        }
+        val area = Area.Project(eo)
+        val components = store.list(area, "component")
+        assertTrue(components.any { it.code == "EO-QA" } && components.none { it.code == "UT" })
+        assertEquals(components.size, components.distinctBy { it.code }.size)
+        val pkg = store.byCode(area, "09.13")!!
+        assertTrue(pkg.doc.path("pbs_refs").any { store.byId(it.asText())?.code == "EO-QA" })
+        assertEquals(7, store.list(area, "system_model").size)
+        val catalog = call("GET", "library/catalog", eo).path("items")
+        assertEquals(7, catalog.single { it.path("code").asText() == "MDL-EO" }.path("taken").asInt())
+        val offer = router.handle("GET", "/v2/library/take/preview", mapOf("project" to eo, "shelf" to "observation_task"), null)!!.body
+        assertEquals(156, offer.path("items").size())
+        assertTrue(offer.path("items").none { it.path("recommended").asBoolean() })
+        val choice = """{"shelf":"observation_task","items":["EO-TASK-1.10"]}"""
+        repeat(2) { call("POST", "library/take", eo, choice) }
+        assertEquals("1.10", store.list(area, "observation_task").single().doc.path("source_id").asText())
+        for (legacy in listOf("", "MC-9001")) {
+            val other = if (legacy.isEmpty()) "PJ-LEGACY" else "PJ-IOT"
+            call("POST", "projects", other, q.put("code", other).put("mission_class", legacy).toString())
+            assertEquals("PBS-9002", call("GET", "components/frame", other).path("shelf").asText())
+            assertTrue(call("GET", "wbs/offer", other).path("items").none { it.path("code").asText() == "09.13" })
+            call("POST", "models/take", other, "{}")
+            assertTrue(store.list(Area.Project(other), "system_model").none { it.code.startsWith("EO-M-") })
+        }
+    }
+
+    @Test
     fun `сцена 10 держится технологиями, а разрыв TRL сам рождает пакет и веху`() {
         assertEquals("open", сцена("10").path("state").asText(), "после требований сцена 10 открывается сама")
         assertTrue(

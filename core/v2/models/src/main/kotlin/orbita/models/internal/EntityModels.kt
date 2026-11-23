@@ -4,6 +4,7 @@ package orbita.models.internal
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
 import orbita.kernel.api.Area
+import orbita.kernel.api.projectShelves
 import orbita.kernel.api.Channel
 import orbita.kernel.api.Entity
 import orbita.kernel.api.EntityStore
@@ -23,12 +24,12 @@ class EntityModels(
 
     private val лестница = listOf("MCR", "SRR", "SDR", "PDR")
 
-    private fun полка(): Entity? =
-        store.list(Area.Library, "model_template").maxByOrNull { it.version }
+    private fun полка(project: String): Entity? =
+        store.projectShelves(project, "model_template").maxByOrNull { it.version }
 
     override fun take(project: String, author: String): List<ModelView> {
         val область = Area.Project(project)
-        val шаблон = полка() ?: error(
+        val шаблон = полка(project) ?: error(
             "полки моделей нет: python3 tools/v2/gen_models_shelf.py и загрузчик полок",
         )
         шаблон.doc.path("models").forEach { модель ->
@@ -38,7 +39,7 @@ class EntityModels(
             документ.put("template_code", код)
             документ.put("name", модель.path("name").asText())
             документ.put("question", модель.path("question").asText(""))
-            документ.put("required_to", модель.path("required_to").asText(""))
+            документ.put("required_to", модель.path("gate").asText(модель.path("required_to").asText("")))
             документ.put("tool_status", модель.path("tool_status").asText("build"))
             документ.put("interface_bound", модель.path("interface_bound").asBoolean(false))
             документ.put("verification_status", "unverified")
@@ -186,7 +187,7 @@ class EntityModels(
     }
 
     override fun budget(project: String, kind: String, gate: String) =
-        Budgets(store, полка()).свёртка(project, kind, gate)
+        Budgets(store, полка(project)).свёртка(project, kind, gate)
 
     /**
      * Вход модели — параметр узла ссылкой: записью (id) либо кодом «УЗЕЛ.ключ» —

@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kis.local/schemas/v2/observation_task.schema.json",
+  "title": "observation_task",
+  "description": "тематическая задача наблюдения Земли — вид 289 слоя L1. Сцена рождения: 6. СГЕНЕРИРОВАНО tools/v2/gen_schemas.py из docs/tz/v2/СХЕМЫ-ПОЛЕЙ-V2.yaml — руками не править",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "стабильный внутренний"
+    },
+    "code": {
+      "type": "string",
+      "description": "человеческий, переименуемый"
+    },
+    "kind": {
+      "type": "string",
+      "description": "ссылка на вид: kind"
+    },
+    "area": {
+      "enum": [
+        "library",
+        "project:id"
+      ]
+    },
+    "born_in": {
+      "type": "string",
+      "description": "ссылка на вид: scene проектная область; библиотека — null"
+    },
+    "status": {
+      "type": "string",
+      "description": "enum по статусной модели вида"
+    },
+    "version": {
+      "type": "integer",
+      "description": "битемпорально"
+    },
+    "provenance": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "enum": [
+            "manual",
+            "package",
+            "service",
+            "shelf",
+            "import",
+            "example"
+          ]
+        },
+        "author": {
+          "type": "string",
+          "description": "ссылка на вид: account"
+        },
+        "source": {
+          "type": "string",
+          "description": "ссылка на сущность"
+        },
+        "anchor": {
+          "type": "string"
+        },
+        "fingerprint": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "channel",
+        "author"
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string",
+      "description": "не печатается"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "name": {
+      "type": "string"
+    },
+    "source_id": {
+      "type": "string"
+    },
+    "section": {
+      "type": "string"
+    },
+    "record_type": {
+      "type": "string"
+    },
+    "profile": {
+      "type": "string"
+    },
+    "validation": {
+      "type": "string"
+    },
+    "radar": {
+      "type": "string"
+    },
+    "hyperspectral": {
+      "type": "string"
+    },
+    "infrared": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "code",
+    "kind",
+    "area",
+    "born_in",
+    "status",
+    "version",
+    "provenance",
+    "created_at",
+    "updated_at",
+    "name",
+    "source_id",
+    "section",
+    "record_type",
+    "profile",
+    "validation"
+  ]
+}

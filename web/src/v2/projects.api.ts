@@ -38,13 +38,14 @@ export const портфель = () => вызов<{ items: КарточкаПро
 
 /** Класс миссии с полки: код записи и имя для человека. */
 export interface КлассМиссии {
+  starter?: boolean
   code: string
   name: string
 }
 
 export async function классыМиссии(): Promise<КлассМиссии[]> {
-  const ответ = await вызов<{ items: { code: string; doc: { name?: string } }[] }>('/shelves?kind=mission_class')
-  return ответ.items.map((запись) => ({ code: запись.code, name: запись.doc.name ?? запись.code }))
+  const ответ = await вызов<{ items: { code: string; doc: { name?: string; tags?: string[] } }[] }>('/shelves?kind=mission_class')
+  return ответ.items.map((запись) => ({ code: запись.code, name: запись.doc.name ?? запись.code, starter: запись.doc.tags?.includes('prefill:engineering') }))
 }
 
 /** Точка шаблона фазы: ключ и заголовок — с полки, а не из кода экрана. */

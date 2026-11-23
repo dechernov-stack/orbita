@@ -10,6 +10,7 @@
 // точки, и паспорт показывает те же. Второго места для этих дат нет.
 import { useEffect, useState } from 'react'
 import './projects.css'
+import { api } from './api'
 import {
   завестиПроект, классыМиссии, точкиШаблона, учётки,
   type КлассМиссии, type ТочкаШаблона, type УчёткаСтенда,
@@ -54,6 +55,8 @@ export function NewProjectScreen({ onCreated, onCancel }: {
   /** Вернуться к портфелю, ничего не заводя. */
   onCancel: () => void
 }) {
+  const [prefill, setPrefill] = useState(true)
+  const [createdProject, setCreatedProject] = useState<string | null>(null)
   const [имя, setИмя] = useState('')
   const [класс, setКласс] = useState('')
   const [руководитель, setРуководитель] = useState('')
@@ -87,27 +90,40 @@ export function NewProjectScreen({ onCreated, onCancel }: {
 
   const помеха = !имя.trim() ? 'дайте проекту название — по нему его узнают в портфеле' : null
 
-  const создать = () => {
-    if (помеха) return
-    setЗанято(true); setОтказ(null)
-    завестиПроект({
-      name: имя.trim(),
-      mission_class: класс || undefined,
-      manager: руководитель.trim() || undefined,
-      author: автор,
-      template: ШАБЛОН,
-      gate_dates: точки.map((точка, i) => ({ gate: точка.key, date: датаТочки(точка, i) })),
-    })
-      .then((ответ) => onCreated(ответ.project))
-      .catch((е) => setОтказ(String(е.message ?? е)))
-      .finally(() => setЗанято(false))
+  const starter = классы.some((item) => item.name === класс && item.starter)
+  const создать = async () => {
+    if (помеха || занято) return
+    setЗанято(true)
+    setОтказ(null)
+    try {
+      let project = createdProject
+      if (!project) {
+        const ответ = await завестиПроект({
+          name: имя.trim(), mission_class: класс || undefined,
+          manager: руководитель.trim() || undefined, author: автор, template: ШАБЛОН,
+          gate_dates: точки.map((точка, i) => ({ gate: точка.key, date: датаТочки(точка, i) })),
+        })
+        project = ответ.project
+        setCreatedProject(project)
+      }
+      if (starter && prefill) {
+        await api.takeFrame(project, автор)
+        await api.takeWbs(project)
+        await api.takeModels(project, автор)
+      }
+      onCreated(project)
+    } catch (error) {
+      setОтказ(error instanceof Error ? error.message : String(error))
+    } finally {
+      setЗанято(false)
+    }
   }
 
   return (
     <div className="v2-np">
       <h1 className="v2-np__h">Новый проект</h1>
-      {отказ && <div className="v2-locked">Проект не заведён: {отказ}</div>}
-      <div className="v2-np__cols">
+      {отказ && <div className="v2-locked">{createdProject ? 'Проект создан. Преднаполнение прервано' : 'Проект не заведён'} — {отказ}</div>}
+      <fieldset className="v2-np__cols" disabled={занято || Boolean(createdProject)} style={{ border: 0, padding: 0, marginInline: 0 }}>
         <section className="v2-np__col">
           <div className="v2-form">
             <label className="v2-field">
@@ -122,6 +138,10 @@ export function NewProjectScreen({ onCreated, onCancel }: {
                 {классы.map((к) => <option key={к.code} value={к.name}>{к.name}</option>)}
               </select>
             </label>
+            {starter && <label className="v2-check">
+              <input type="checkbox" checked={prefill} onChange={(e) => setPrefill(e.target.checked)} />
+              Добавить рекомендованные PBS, WBS и модели при создании
+            </label>}
             {классы.length === 0 && (
               <div className="v2-empty__why">
                 Классов миссии на полке нет: без класса проект заведётся, но рамки в него не придут.
@@ -164,17 +184,17 @@ export function NewProjectScreen({ onCreated, onCancel }: {
             </>
           )}
         </section>
-      </div>
+      </fieldset>
 
       <div className="v2-form__actions v2-np__done">
         <button type="button" className="v2-primary" onClick={создать}
           disabled={Boolean(помеха) || занято}
           title={помеха ?? 'завести проект: фаза получит точки на этих датах'}>
-          {занято ? 'Завожу…' : 'Создать проект'}
+          {занято ? 'Создание…' : createdProject ? 'Продолжить преднаполнение' : 'Создать проект'}
         </button>
-        <button type="button" className="v2-chip" onClick={onCancel}
-          title="вернуться к портфелю: ничего не заведётся">
-          Отмена
+        <button type="button" className="v2-chip" onClick={() => createdProject ? onCreated(createdProject) : onCancel()}
+          title={createdProject ? 'открыть уже созданный проект' : 'вернуться к портфелю'}>
+          {createdProject ? 'Открыть созданный проект' : 'Отмена'}
         </button>
       </div>
     </div>

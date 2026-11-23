@@ -430,7 +430,7 @@ class SceneRoutes(
     }
 
     private fun открытьПроект(тело: JsonNode, actor: Actor?): V2Router.Ответ {
-        val код = тело.path("code").asText("").ifBlank { "PJ-" + LocalDate.now().toString().replace("-", "") }
+        val код = тело.path("code").asText("").ifBlank { "PJ-" + LocalDate.now().toString().replace("-", "") + "-" + java.util.UUID.randomUUID().toString().take(8) }
         val область = Area.Project(код)
         val автор = автор(тело)
         // Песочница (ADR-072): проект служебной личности — всегда песочница

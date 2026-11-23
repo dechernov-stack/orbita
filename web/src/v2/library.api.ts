@@ -20,6 +20,7 @@ export interface СтрокаКаталога {
 }
 
 export interface ЗаписьВзятия {
+  detail?: string
   code: string
   title: string
   parent: string | null

@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
 import orbita.formulation.api.Formulation
 import orbita.kernel.api.Area
+import orbita.kernel.api.projectShelves
 import orbita.kernel.api.Channel
 import orbita.kernel.api.EntityStore
 import orbita.kernel.api.LinkRegistry
@@ -175,6 +176,8 @@ class AcrossRoutes(
             "wbs_template", "Каркас работ", контейнер = "packages",
             цель = "wbs_package", механизм = "wbs",
         ),
+        Полка("observation_task", "Тематические задачи наблюдения", чем = "задачи", цель = "observation_task"),
+        Полка("typical_component", "Типы аппаратов и приборов", чем = "варианты", цель = "typical_component"),
         Полка("constraint", "Рамки Р класса миссии", чем = "рамки", цель = "constraint"),
         Полка("normative_document", "Нормативы", чем = "нормативы", цель = "normative_document"),
         Полка("process_catalog", "Процессы системной инженерии", чем = "процессы", цель = "process_catalog"),
@@ -186,13 +189,11 @@ class AcrossRoutes(
         ),
         Полка(
             "architecture_template", "Архитектура Arcadia", контейнер = "functions",
-            почему = "содержимое полки лежит слоями, а истина схем ждёт перечни функций, обменов и " +
-                "цепочек одним списком — пока поставка не выровнена, брать с полки нечего",
+            почему = "функции и цепочки используются при подготовке архитектуры и сценариев проекта",
         ),
         Полка(
             "model_template", "Модели системы", контейнер = "models",
-            почему = "поля моделей на полке названы иначе, чем у записи модели в проекте, и " +
-                "соответствия истина схем не назвала; модель заводится на экране моделей",
+            цель = "system_model", механизм = "models",
         ),
         Полка(
             "component_template_shelf", "Шаблоны компонентов", контейнер = "templates",
@@ -232,7 +233,7 @@ class AcrossRoutes(
         val строки = ответ.putArray("items")
         val пустые = ответ.putArray("empty")
         ПОЛКИ.forEach { п ->
-            val записи = записиПолки(п.вид)
+            val записи = записиПолки(проект, п.вид)
             if (записи.isEmpty()) { пустые.add(п.имя); return@forEach }
             if (п.контейнер == null) строки.add(строкаПлоской(проект, п, записи))
             else записи.forEach { строки.add(строкаКонтейнера(проект, п, it)) }
@@ -245,8 +246,8 @@ class AcrossRoutes(
     }
 
     /** Записи полки: снятое с учёта на полке не лежит. */
-    private fun записиПолки(вид: String): List<orbita.kernel.api.Entity> =
-        store.list(Area.Library, вид).filter { it.status != СНЯТО }.sortedBy { it.code }
+    private fun записиПолки(проект: String, вид: String): List<orbita.kernel.api.Entity> =
+        store.projectShelves(проект, вид).sortedBy { it.code }
 
     /**
      * Содержимое полки-контейнера: перечень записей в названном поле.
@@ -326,11 +327,11 @@ class AcrossRoutes(
      * @param выбор коды, отмеченные человеком; null — рекомендованный набор
      */
     private fun окноВзятия(проект: String, полка: String, выбор: List<String>?): V2Router.Ответ {
-        val (п, запись) = найтиПолку(полка)
+        val (п, запись) = найтиПолку(проект, полка)
         val записи: List<JsonNode> = if (п.контейнер == null) {
             // Плоская полка: карточка сама себе запись; код лежит рядом с
             // документом, поэтому он подставляется в копию для окна.
-            записиПолки(п.вид).mapNotNull { з -> (з.doc as? ObjectNode)?.deepCopy()?.put("code", з.code) }
+            записиПолки(проект, п.вид).mapNotNull { з -> (з.doc as? ObjectNode)?.deepCopy()?.put("code", з.code) }
         } else {
             содержимое(п.вид, п.контейнер, запись!!.doc)
         }
@@ -341,7 +342,7 @@ class AcrossRoutes(
         }.orEmpty()
         val естьКоды = вПроекте.map { it.code }.toSet()
         val изПолки = вПроекте.count { it.provenance.source == полка }
-        val рекомендованные = записи.filter { рекомендовано(it, глубина) }.map { it.path("code").asText() }
+        val рекомендованные = записи.filter { п.вид !in setOf("observation_task", "typical_component") && рекомендовано(it, глубина) }.map { it.path("code").asText() }
         val отмечено = (выбор ?: рекомендованные).toSet()
 
         val ответ = mapper.createObjectNode()
@@ -367,6 +368,7 @@ class AcrossRoutes(
             val строка = строки.addObject()
                 .put("code", код)
                 .put("title", имяЗаписи(з, код))
+                .put("detail", listOf("section", "source_id", "validation", "notes", "scope", "question", "allocated_to", "a", "b").map { з.path(it).asText("") }.filter { it.isNotBlank() }.joinToString(" · "))
                 .put("parent", родитель.ifBlank { null })
                 .put("level", з.path("level").asInt(0))
                 .put("recommended", код in отмечено)
@@ -401,11 +403,11 @@ class AcrossRoutes(
     }
 
     /** Полка по коду строки каталога: контейнер — записью, плоская — видом. */
-    private fun найтиПолку(полка: String): Pair<Полка, orbita.kernel.api.Entity?> {
+    private fun найтиПолку(проект: String, полка: String): Pair<Полка, orbita.kernel.api.Entity?> {
         ПОЛКИ.firstOrNull { it.контейнер == null && it.вид == полка }?.let { return it to null }
         ПОЛКИ.forEach { п ->
             if (п.контейнер == null) return@forEach
-            записиПолки(п.вид).firstOrNull { it.code == полка }?.let { return п to it }
+            записиПолки(проект, п.вид).firstOrNull { it.code == полка }?.let { return п to it }
         }
         throw NoSuchElementException("такой полки в библиотеке нет — каталог называет те, что есть")
     }
@@ -442,7 +444,7 @@ class AcrossRoutes(
         if (п.цель != "component" || узлы.isEmpty()) return массив
         val область = Area.Project(проект)
         val стыкиПроекта = store.list(область, "interface").filter { it.status != СНЯТО }.map { it.code }.toSet()
-        val стыки = записиПолки("interface_template").sumOf { полка ->
+        val стыки = записиПолки(проект, "interface_template").sumOf { полка ->
             содержимое("interface_template", "interfaces", полка.doc).count { с ->
                 с.path("code").asText() !in стыкиПроекта &&
                     с.path("a").asText("") in узлы && с.path("b").asText("") in узлы
@@ -450,7 +452,7 @@ class AcrossRoutes(
         }
         if (стыки > 0) массив.addObject().put("kind", "interface").put("count", стыки)
         val функцииПроекта = store.list(область, "function").filter { it.status != СНЯТО }.map { it.code }.toSet()
-        val функции = записиПолки("architecture_template").sumOf { полка ->
+        val функции = записиПолки(проект, "architecture_template").sumOf { полка ->
             функцииПолки(полка.doc).count { ф ->
                 ф.path("code").asText() !in функцииПроекта && носители(ф).any { it in узлы }
             }
@@ -493,7 +495,7 @@ class AcrossRoutes(
         require(полка.isNotBlank()) { "не названо, с какой полки брать" }
         val отмечено = тело.path("items").map { it.asText() }.filter { it.isNotBlank() }
         if (тело.path("dry_run").asBoolean(false)) return окноВзятия(проект, полка, отмечено)
-        val (п, _) = найтиПолку(полка)
+        val (п, _) = найтиПолку(проект, полка)
         п.почему?.let { throw IllegalArgumentException(it) }
         п.механизм?.let { throw IllegalArgumentException(отказМеханизма(it)) }
         val цель = п.цель ?: throw IllegalArgumentException("с этой полки в проект ничего не кладётся")
@@ -508,9 +510,10 @@ class AcrossRoutes(
         var создано = 0
         var уже = 0
         val нет = mutableListOf<String>()
+        val доступные = записиПолки(проект, п.вид).associateBy { it.code }
         отмечено.forEach { код ->
             if (код in было) { уже += 1; return@forEach }
-            val карточка = store.byCode(Area.Library, код)?.takeIf { it.kind == п.вид && it.status != СНЯТО }
+            val карточка = доступные[код]
             if (карточка == null) { нет += код; return@forEach }
             // Документ переносится КАК ЕСТЬ: поля записи полки — те же поля
             // того же вида, и сторож записи проверяет их по истине схем.
@@ -535,6 +538,7 @@ class AcrossRoutes(
 
     /** Кто берёт полку вместо библиотеки — словами, а не молчанием. */
     private fun отказМеханизма(механизм: String): String = when (механизм) {
+        "models" -> "модели принимаются на экране моделей системы"
         "frame" -> "каркас состава берётся своим механизмом: «Взять каркас» на экране концепции — " +
             "маршрут библиотеки эту работу не повторяет"
         "wbs" -> "каркас работ берётся своим механизмом: окно пакетов на экране работ — " +

@@ -333,7 +333,7 @@ class Boundary(private val registry: SchemaRegistry, private val conn: Connectio
             orbita.ai.api.AiFactory.embeddings(mapper), mapper,
         )
         val инструментыМодели = orbita.api.internal.ModelToolbox(
-            store, orbita.knowledge.api.KnowledgeFactory.glossary(store, mapper, links), индексЗнаний, движок, полки, mapper,
+            store, orbita.knowledge.api.KnowledgeFactory.glossary(store, mapper, links), индексЗнаний, движок, mapper,
         )
         // Разбор фоновой задачей (ADR-069): сеть в фоне, база — на потоке запросов.
         // Очередь одна: ею же идёт партия каталога (шип 4 §3).

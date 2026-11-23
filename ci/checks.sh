@@ -9,11 +9,14 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+echo "== контракт выката =="; python3 ci/test_deploy_contract.py
+
 echo "== схемы v2 (истина YAML) ==" ; python3 tools/v2/gen_schemas.py --check
 # Вторая истина поля знаний: правила образования понятий (identity, conflict_on,
 # must_link). Рядом со схемами, потому что расходится так же молча.
 echo "== онтология формирования (истина YAML) ==" ; python3 tools/v2/gen_ontology.py --check
 echo "== полка моделей (из поставки) ==" ; python3 tools/v2/gen_models_shelf.py --check
+echo "== связность полок ДЗЗ ==" ; python3 tools/v2/test_eo_shelves.py
 echo "== мероприятия сцен (из полки ЖЦ) ==" ; python3 tools/v2/gen_phase_activities.py --check
 echo "== шаблон Phase A (из БП-PA и полки Романова) ==" ; python3 tools/v2/gen_phase_a_template.py --check
 echo "== полка процессов СИ (из конфигурации SEMP) ==" ; python3 tools/v2/gen_process_catalog.py --check

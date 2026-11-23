@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
 import orbita.architecture.api.Architecture
 import orbita.kernel.api.Area
+import orbita.kernel.api.projectShelves
 import orbita.kernel.api.Channel
 import orbita.kernel.api.EntityStore
 import orbita.kernel.api.Provenance
@@ -410,18 +411,8 @@ class ArchRoutes(
         return V2Router.Ответ(201, ответ)
     }
 
-    /** Полка каркаса: рекомендованная классом миссии проекта, иначе единственная. */
-    private fun полкаКаркаса(проект: String): orbita.kernel.api.Entity? {
-        val полки = store.list(Area.Library, "pbs_template").filter { it.status != СНЯТО }
-        if (полки.isEmpty()) return null
-        val проектЗапись = store.byCode(Area.Project(проект), проект)
-        val классИмя = проектЗапись?.doc?.path("mission_class")?.asText("").orEmpty().trim()
-        val класс = store.list(Area.Library, "mission_class").firstOrNull {
-            it.code.equals(классИмя, ignoreCase = true) || it.doc.path("name").asText("").equals(классИмя, ignoreCase = true)
-        }
-        val названные = класс?.doc?.path("recommended_shelves")?.map { it.asText() }.orEmpty()
-        return полки.firstOrNull { it.code in названные } ?: полки.singleOrNull()
-    }
+    private fun полкаКаркаса(проект: String) =
+        store.projectShelves(проект, "pbs_template").singleOrNull()
 
     /** Правило взятия — строка полки; своего у кода нет. */
     private fun правилоВзятия(полка: orbita.kernel.api.Entity): String? =
