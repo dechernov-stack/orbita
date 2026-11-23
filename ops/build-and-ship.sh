@@ -42,7 +42,7 @@ $SSH "mkdir -p $DEST"
 rsync -az --delete \
   --exclude .git --exclude web/node_modules --exclude web/dist \
   --exclude .gradle --exclude '**/build' --exclude .env \
-  --exclude docker-compose.override.yml \
+  --exclude docker-compose.override.yml --exclude /orbita/ \
   -e "ssh -i $SSH_KEY -o BatchMode=yes" "$ROOT/" "root@$SERVER:$DEST/"
 
 echo "==> Перенос образов (docker save | load)"
